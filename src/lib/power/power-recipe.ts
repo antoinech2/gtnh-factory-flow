@@ -94,7 +94,7 @@ export function buildPowerRecipe(
   // it over a material output, and per second (x20) like every flow.
   const euOutput =
     model.euOutput ?? (model.euPerTick > 0 ? { tier: powerOutputTier(model), perTick: model.euPerTick } : undefined);
-  const tier = euOutput?.tier ?? powerOutputTier(model);
+  // Only a card with EU out has a voltage: a boiler or an exchanger has none.
   if (euOutput) {
     outputs.unshift({
       ...euResource(euOutput.tier),
@@ -123,7 +123,7 @@ export function buildPowerRecipe(
     power: {
       sourceId,
       euPerTick: model.euPerTick,
-      tier,
+      tier: euOutput?.tier,
       stats: [...model.stats, ...unresolvedFlowStats(model)],
       warnings: model.warnings,
     },

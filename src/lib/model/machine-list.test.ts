@@ -163,7 +163,8 @@ describe("power card tiers in the machine list", () => {
     // tier), and the MACHINES panel looked "1" up in the voltage colours.
     const { buildPowerRecipe } = await import("@/lib/power/power-recipe");
     const lheSettings = { fluid: "Hot Coolant", intake: "1000", tier: "1" };
-    const turbineSettings = { tier: "EV" };
+    // The steam turbine comes in LV, MV and HV; the list names the voltage its EU leaves at.
+    const turbineSettings = { tier: "HV" };
     const lhe = buildPowerRecipe("large-heat-exchanger", lheSettings, "r-lhe")!;
     const turbine = buildPowerRecipe("steam-turbine", turbineSettings, "r-turbine")!;
     const p: FactoryProject = {
@@ -180,6 +181,6 @@ describe("power card tiers in the machine list", () => {
     };
     const lines = buildMachineList(p, calculateThroughput(p));
     expect(lines.find((line) => line.nodeId === "lhe")?.tier).toBeUndefined();
-    expect(lines.find((line) => line.nodeId === "turbine")?.tier).toBe("EV");
+    expect(lines.find((line) => line.nodeId === "turbine")?.tier).toBe("HV");
   });
 });

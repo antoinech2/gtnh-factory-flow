@@ -155,7 +155,8 @@ export function buildMachineList(
     // generators but a plain number on the heat exchangers (their pipe tier),
     // which the list must not read as a voltage.
     const powerSetting = recipe.power ? node.machineConfigTiers?.tier : undefined;
-    const powerTier = isVoltageTierName(powerSetting) ? powerSetting : undefined;
+    // A power card carries the voltage its EU leaves at; older recipes fall back on the setting.
+    const powerTier = recipe.power?.tier ?? (isVoltageTierName(powerSetting) ? powerSetting : undefined);
     const tier = report?.tier ?? cropTier ?? powerTier;
     entries.push({
       nodeId: node.id,

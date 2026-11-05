@@ -9,6 +9,7 @@ import { railcraftOtherSources } from "./sources/railcraft";
 import { singleblockSources } from "./sources/singleblocks";
 import { sofcSources } from "./sources/sofc";
 import { steamMakerSources } from "./sources/steam-makers";
+import { withDynamos } from "./dynamos";
 import { transformerSources } from "./sources/transformer";
 import { turbineSources } from "./sources/turbines";
 import type { PowerGroupId, PowerSourceDefinition } from "./types";
@@ -26,6 +27,7 @@ export const POWER_GROUPS: Array<{ id: PowerGroupId; name: string; blurb: string
   { id: "endgame", name: "Endgame", blurb: "Naquadah, fusion, antimatter." },
 ];
 
+// Multiblock generators get dynamo settings (dynamos.ts): the voltage their EU leaves at.
 export const POWER_SOURCES: PowerSourceDefinition[] = [
   ...singleblockSources,
   ...engineSources,
@@ -37,7 +39,7 @@ export const POWER_SOURCES: PowerSourceDefinition[] = [
   ...endgameSources,
   ...railcraftOtherSources,
   ...transformerSources,
-];
+].map(withDynamos);
 
 const byId = new Map(POWER_SOURCES.map((source) => [source.id, source]));
 

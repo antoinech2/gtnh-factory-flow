@@ -3,6 +3,7 @@ import {
   type RailDrawer,
   type RailLine,
   type RailMachine,
+  type RailNetwork,
   type RailModel,
   type RailPin,
 } from "./rail-model";
@@ -39,6 +40,7 @@ export type RailItem =
     }
   | { t: "spare"; spare: SpareView; shownInSection: boolean }
   | { t: "power"; label: "Made" | "Net"; value: number }
+  | { t: "network"; network: RailNetwork }
   | { t: "group"; name: string; entries: RailMachine[] }
   | { t: "machine"; entry: RailMachine }
   | { t: "gap" };
@@ -168,6 +170,11 @@ export function layoutRail(input: LayoutInput): { placed: Placed[]; height: numb
     push({ t: "power", label: "Net", value: used.made - used.used }, POWER_H, "w:net");
     y += 2;
   }
+  // Each power network under the plan's totals, lowest tier first (docs/power-networks.md).
+  for (const network of rail.networks) {
+    push({ t: "network", network }, POWER_H, `n:${network.storageId ?? "none"}`);
+  }
+  if (rail.networks.length > 0) y += 2;
   if (groupsOf.size === 0) {
     push(
       { t: "empty", text: rail.machines.length === 0 ? "No machines yet." : "No matches." },

@@ -17,6 +17,9 @@ import {
   makeResourceHandleId,
   parseResourceHandleId,
 } from "../../resource-handles";
+import { GT_VOLTAGE_TIERS } from "@/lib/model/tiers";
+import { euTierOf, type VoltageTier } from "@/lib/power/eu";
+import { getNodeEuInput, networkPeakAmps } from "@/lib/solver/eu-input";
 
 /**
  * The overview's numbers, worked out once per (project, solve): what the plan
@@ -95,6 +98,19 @@ export interface RailMachine extends MachineListEntry {
   upTo?: PlanUpTo;
 }
 
+/** One power network on the overview: an EU drawer, or (no `storageId`) the machines on none. EU/t. */
+export interface RailNetwork {
+  storageId?: string;
+  tier?: VoltageTier;
+  label: string;
+  /** What its generators and transformers put in. */
+  made: number;
+  /** What its machines and transformers take out. */
+  used: number;
+  /** The most amps its takers pull at once (`networkPeakAmps`): what its cable must carry. */
+  peakAmps?: number;
+}
+
 export interface RailModel {
   inputs: RailLine[];
   outputs: RailLine[];
@@ -107,6 +123,11 @@ export interface RailModel {
     average: { used: number; made: number; steam: number };
     hasMade: boolean;
   };
+  /**
+   * Each power network (an EU drawer with a wire, `docs/power-networks.md`), lowest tier first, and what machines
+   * draw on no network; empty when the plan has none.
+   */
+  networks: RailNetwork[];
   /** Canonical resource key by what a port asks for (two keys a wire joins are one resource). */
   aliases: ReadonlyMap<string, string>;
 }
@@ -122,8 +143,53 @@ export const EMPTY_RAIL: RailModel = {
     average: { used: 0, made: 0, steam: 0 },
     hasMade: false,
   },
+  networks: [],
   aliases: new Map(),
 };
+
+/**
+ * The plan's power networks: each EU drawer with a wire, what its wires carry in and out (the solved flows, EU/t),
+ * lowest tier first; then what machines with no EU wire draw, which no network supplies. Empty while no EU drawer has
+ * a wire, so a plan without networks shows the overview it always did.
+ */
+export function buildRailNetworks(
+  project: FactoryProject,
+  result: ThroughputResult,
+  machineEntries: readonly MachineListEntry[],
+): RailNetwork[] {
+  const flowOf = (edgeId: string) => (result.edges[edgeId]?.transferredPerSecond ?? 0) / 20;
+  const networks: RailNetwork[] = [];
+  for (const storage of project.storages ?? []) {
+    const tier = storage.kind === "power" ? euTierOf(storage.resourceId) : undefined;
+    if (!tier) continue;
+    const into = project.edges.filter((edge) => edge.target === storage.id);
+    const out = project.edges.filter((edge) => edge.source === storage.id);
+    if (into.length + out.length === 0) continue;
+    networks.push({
+      storageId: storage.id,
+      tier,
+      label: storage.displayName ?? `${tier} EU`,
+      made: into.reduce((sum, edge) => sum + flowOf(edge.id), 0),
+      used: out.reduce((sum, edge) => sum + flowOf(edge.id), 0),
+      peakAmps: networkPeakAmps(project, result, storage.id, tier),
+    });
+  }
+  if (networks.length === 0) return networks;
+  const order = (tier: VoltageTier | undefined) => GT_VOLTAGE_TIERS.findIndex((entry) => entry.tier === tier);
+  networks.sort((a, b) => order(a.tier) - order(b.tier) || a.label.localeCompare(b.label));
+
+  const recipes = new Map(project.recipes.map((recipe) => [recipe.id, recipe]));
+  const nodes = new Map(project.nodes.map((node) => [node.id, node]));
+  const onNetwork = new Set(project.edges.filter((edge) => edge.resourceKind === "power").map((edge) => edge.target));
+  const loose = machineEntries.reduce((sum, entry) => {
+    const node = nodes.get(entry.nodeId);
+    const recipe = node ? recipes.get(node.recipeId) : undefined;
+    const drawsEu = node && recipe && !onNetwork.has(node.id) && getNodeEuInput(recipe, node);
+    return drawsEu ? sum + (entry.avgEuT ?? 0) : sum;
+  }, 0);
+  if (loose > 0) networks.push({ label: "No network", made: 0, used: loose });
+  return networks;
+}
 
 /** A shared machine's section result id (`card#r2`) split into the card and the handle prefix (`r2:`). */
 export function splitResultNodeId(id: string): { cardId: string; prefix: string } {
@@ -432,7 +498,16 @@ export function buildRailModel(
     hasMade: machineEntries.some((e) => e.madeEuT !== undefined),
   };
   const wholeMachines = machines.reduce((total, e) => total + Math.ceil(e.count - 1e-9), 0);
-  return { inputs, outputs, internal, machines, wholeMachines, power, aliases };
+  return {
+    inputs,
+    outputs,
+    internal,
+    machines,
+    wholeMachines,
+    power,
+    networks: buildRailNetworks(project, result, machineEntries),
+    aliases,
+  };
 }
 
 /** A section's lines: what the plan's spares carry is theirs, so a line left with nothing but that is not listed. */

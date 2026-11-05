@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { PROJECT_SCHEMA_VERSION, type FactoryProject } from "@/lib/model/types";
 import { euHandleId } from "@/lib/power/eu";
 import { buildPowerRecipe } from "@/lib/power/power-recipe";
+import { networkCandidates } from "@/lib/solver/eu-input";
 import { useFactoryStore } from "./factory-store";
 
 /**
@@ -71,6 +72,20 @@ describe("power network wiring", () => {
     // At MV the press takes MV EU: the LV wire has no input left to land on.
     useFactoryStore.getState().updateNode("press", { overclockTier: "MV" });
     expect(useFactoryStore.getState().project.edges).toEqual([]);
+  });
+
+  it("offers an LV network the selected LV machines with no EU wire, and nothing else", () => {
+    const base = plan("LV");
+    const withMv: FactoryProject = {
+      ...base,
+      nodes: [...base.nodes, { ...base.nodes[1]!, id: "press-mv", overclockTier: "MV" }],
+    };
+    // The generator makes EU, the MV press takes MV EU: only the LV press can join.
+    expect(networkCandidates(withMv, "grid", ["gen", "press", "press-mv"])).toEqual(["press"]);
+    useFactoryStore.getState().setProject(withMv);
+    useFactoryStore.getState().connectNodes("grid", "press", LV_EU);
+    // Wired already: one network a machine.
+    expect(networkCandidates(useFactoryStore.getState().project, "grid", ["press"])).toEqual([]);
   });
 
   it("refuses LV EU into a machine running at MV", () => {

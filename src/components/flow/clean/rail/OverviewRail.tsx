@@ -72,7 +72,9 @@ import {
 import { steppedRate } from "./rail-math";
 import { measureClean, useFontEpoch } from "../text-measure";
 import { useRailData } from "./rail-data";
-import type { RailDrawer, RailLine, RailMachine, RailPin } from "./rail-model";
+import type { RailDrawer, RailLine, RailMachine, RailNetwork, RailPin } from "./rail-model";
+import { getVoltageTierMaxEuT } from "@/lib/model/tiers";
+import type { VoltageTier } from "@/lib/power/eu";
 import { hideTip, tipProps, type TipContent } from "./rail-tip";
 import { toggleRailSection, useRailView, writeRailView } from "./rail-view";
 import { SpareBlock } from "./SpareBlock";
@@ -496,6 +498,8 @@ const ItemView = memo(function ItemView({
           </b>
         </div>
       );
+    case "network":
+      return <NetworkRow network={item.network} height={placed.height} />;
     case "group":
       return <GroupRow name={item.name} entries={item.entries} />;
     case "machine":
@@ -994,6 +998,74 @@ function MachineGlyph({ entry }: { entry: RailMachine }) {
       />
     </span>
   );
+}
+
+/**
+ * One power network under the plan's totals: its tier chip, its name and what it has left (made less used); the
+ * machines on no network close the list. Its tip has the figures and the amps its cable must carry.
+ */
+function NetworkRow({ network, height }: { network: RailNetwork; height: number }) {
+  const colors = network.tier ? tierChipColors(network.tier) : undefined;
+  const net = network.made - network.used;
+  const figure = (euT: number) => `${formatCompact(powerDisplayFromEuT(euT, network.tier))} ${powerDisplaySuffix(network.tier)}`;
+  const tip = (): TipContent =>
+    network.tier
+      ? {
+          title: network.label,
+          sub: `${network.tier} power network`,
+          rows: [
+            ["Made", figure(network.made)],
+            ["Used", figure(network.used)],
+            ["Amps, average", `${formatCompact(network.used / voltageOf(network.tier))} A`],
+            ...(network.peakAmps !== undefined
+              ? ([["Amps, peak", `${formatCompact(network.peakAmps)} A`]] as Array<[string, string]>)
+              : []),
+          ],
+          notes: [
+            { text: "Machines refill in bursts: size the cable for the peak.", tone: "muted" },
+          ],
+          actions: [{ input: "left", label: "Go to its drawer" }],
+        }
+      : {
+          title: network.label,
+          rows: [["Used", figure(network.used)]],
+          notes: [{ text: "Machines with no EU wire. No network supplies them.", tone: "muted" }],
+        };
+  return (
+    <div
+      className="rail-power"
+      style={{ height, cursor: network.storageId ? "pointer" : undefined }}
+      onClick={network.storageId ? () => frameCards([network.storageId!]) : undefined}
+      {...tipProps(`network|${network.storageId ?? "none"}`, tip)}
+    >
+      <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+        {colors ? (
+          <span
+            style={{
+              background: colors.background,
+              color: colors.ink,
+              boxShadow: `inset 0 0 0 1px ${colors.border}`,
+              textDecoration: colors.underline ? "underline" : undefined,
+              padding: "0 3px",
+              fontWeight: 600,
+            }}
+          >
+            {network.tier}
+          </span>
+        ) : null}
+        <span style={{ color: CC.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {network.label}
+        </span>
+      </span>
+      <b style={{ color: network.storageId ? (net >= -1e-6 ? CC.ok : CC.red) : CC.muted }}>
+        {network.storageId ? `${net >= -1e-6 ? "+" : "-"}${figure(Math.abs(net))}` : figure(network.used)}
+      </b>
+    </div>
+  );
+}
+
+function voltageOf(tier: VoltageTier): number {
+  return getVoltageTierMaxEuT(tier);
 }
 
 function GroupRow({ name, entries }: { name: string; entries: RailMachine[] }) {

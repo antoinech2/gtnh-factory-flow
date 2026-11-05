@@ -130,6 +130,8 @@ export interface DrawerViewInput {
   linked: boolean;
   /** What the makers of a buffer force out beyond what its users take, per second (the plan's `spills`, summed). */
   spill?: number;
+  /** A power network's peak amps (`networkPeakAmps`): what its cable must carry. */
+  peakAmps?: number;
 }
 
 const KIND_NAME: Record<DrawerKind, string> = {
@@ -159,7 +161,7 @@ function ruleMeaning(kind: DrawerKind, rule: TargetMode): string {
 }
 
 export function buildDrawerView(input: DrawerViewInput): CleanDrawerView {
-  const { storage, role, label, result, unanchored, unmet, linked, spill } = input;
+  const { storage, role, label, result, unanchored, unmet, linked, spill, peakAmps } = input;
   const kind = drawerKindFor(role, storage);
   const resourceKind = storage.kind;
   // A buffer's net is zero (in equals out): its figure is what passes through.
@@ -241,6 +243,9 @@ export function buildDrawerView(input: DrawerViewInput): CleanDrawerView {
   const bodyNotes: NonNullable<TipSpec["notes"]> = [];
   if (kind === "buffer") bodyNotes.push({ text: "Its makers put in what its users take out.", tone: "muted" });
   if (!linked) bodyNotes.push({ text: "Unconnected", tone: "warn" });
+  if (resourceKind === "power" && peakAmps !== undefined && peakAmps > 0) {
+    bodyNotes.push({ text: "Machines refill in bursts: size the cable for the peak.", tone: "muted" });
+  }
   if (isUnmet && hasTarget) {
     bodyNotes.push({
       text: `Reaches only ${reaches} of its ${targetParts!.number} ${unitLabel} target`,
@@ -256,7 +261,12 @@ export function buildDrawerView(input: DrawerViewInput): CleanDrawerView {
     rows: [
       { label: flowWord, value: `${number} ${unitLabel}` },
       ...(euTier
-        ? [{ label: "Amps", value: `${formatCompact(net / 20 / getVoltageTierMaxEuT(euTier))} A ${euTier}` }]
+        ? [
+            { label: "Amps, average", value: `${formatCompact(net / 20 / getVoltageTierMaxEuT(euTier))} A ${euTier}` },
+            ...(peakAmps !== undefined && peakAmps > 0
+              ? [{ label: "Amps, peak", value: `${formatCompact(peakAmps)} A ${euTier}` }]
+              : []),
+          ]
         : []),
     ],
     notes: bodyNotes,

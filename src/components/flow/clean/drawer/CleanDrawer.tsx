@@ -3,7 +3,7 @@
 import "../clean.css";
 import "./drawer.css";
 
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
   useEffect,
   useLayoutEffect,
@@ -34,6 +34,8 @@ import { checklistLocked } from "../../RecipeNode";
 import { useFontEpoch } from "../text-measure";
 import { TO_PRODUCT, TO_TRASH, bufferThroughput, buildDrawerView } from "./drawer-model";
 import { DrawerIcon } from "./DrawerIcon";
+import { euHandleId, euTierOf } from "@/lib/power/eu";
+import { networkCandidates, networkPeakAmps } from "@/lib/solver/eu-input";
 import { BoardMenu, MenuLine, MenuRow } from "../menus/BoardMenu";
 import { ensureInteractionHost, tipAttrs } from "../interaction";
 import { setSpillHover, useSpillHover } from "../interaction/spill-hover";
@@ -125,6 +127,11 @@ export function CleanDrawer({
       if (entry.drawerId === storage.id) total += entry.perSecond;
     return total;
   });
+  // A power network's peak amps: a number, so the selector is stable; undefined on any other drawer.
+  const peakAmps = useFactoryStore((state) => {
+    const tier = storage.kind === "power" ? euTierOf(storage.resourceId) : undefined;
+    return tier ? networkPeakAmps(state.project, state.lastResult, storage.id, tier) : undefined;
+  });
   const readOnly = useFactoryStore((state) => state.isReadOnly);
   const browseResource = useFactoryStore((state) => state.browseResource);
   const deleteStorage = useFactoryStore((state) => state.deleteStorage);
@@ -139,10 +146,10 @@ export function CleanDrawer({
   );
   const view = useMemo(
     () =>
-      buildDrawerView({ storage, role, label, result, unanchored, unmet, linked: role !== "idle", spill }),
+      buildDrawerView({ storage, role, label, result, unanchored, unmet, linked: role !== "idle", spill, peakAmps }),
     // The rate and power dials change the strings (the units are read inside).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [storage, role, label, result, unanchored, unmet, spill, rateUnit, powerUnit, fontEpoch],
+    [storage, role, label, result, unanchored, unmet, spill, peakAmps, rateUnit, powerUnit, fontEpoch],
   );
   // "Set rate" blinks off the board's one clock (virtual/prompt-phase.ts).
   useEffect(() => {
@@ -204,6 +211,34 @@ export function CleanDrawer({
 
   const [menu, setMenu] = useState<DOMRect>();
   const [context, setContext] = useState<{ x: number; y: number }>();
+  // A power network's menu wires the selected machines of its tier in one undo step (docs/power-networks.md).
+  const flow = useReactFlow();
+  const connectNodesBatch = useFactoryStore((state) => state.connectNodesBatch);
+  const euTier = storage.kind === "power" ? euTierOf(storage.resourceId) : undefined;
+  const networkTargets =
+    context && euTier && !locked
+      ? networkCandidates(
+          useFactoryStore.getState().project,
+          storage.id,
+          flow.getNodes().filter((node) => node.selected).map((node) => node.id),
+        )
+      : [];
+  const wireNetwork = (nodeIds: string[]) => {
+    if (!euTier) return;
+    connectNodesBatch(
+      nodeIds.map((nodeId) => ({
+        sourceNodeId: storage.id,
+        targetNodeId: nodeId,
+        resource: {
+          kind: "power" as const,
+          id: storage.resourceId,
+          displayName: storage.displayName,
+          sourceHandle: euHandleId("output", euTier),
+          targetHandle: euHandleId("input", euTier),
+        },
+      })),
+    );
+  };
   const keyRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<HTMLDivElement | null>(null);
   const [keyEl, setKeyEl] = useState<HTMLDivElement | null>(null);
@@ -596,6 +631,15 @@ export function CleanDrawer({
         <BoardMenu x={context.x} y={context.y} label="Drawer" onClose={() => setContext(undefined)}>
           {ruleRows(() => setContext(undefined))}
           {menuRows.length > 0 ? <MenuLine /> : null}
+          {networkTargets.length > 0 ? (
+            <MenuRow
+              label={`Wire ${networkTargets.length} selected ${networkTargets.length === 1 ? "machine" : "machines"}`}
+              onClick={() => {
+                setContext(undefined);
+                wireNetwork(networkTargets);
+              }}
+            />
+          ) : null}
           <MenuRow
             label="Delete drawer"
             danger

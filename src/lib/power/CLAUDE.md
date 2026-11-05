@@ -31,6 +31,9 @@
 - Railcraft's Water Tank and boiler (`sources/railcraft.ts`) follow Railcraft's own source (GTNH fork, tag
   9.17.26), not the workbook; the mod pins the same values. The tank and the transformer
   (`sources/transformer.ts`) are the sources in the "other" group, the picker's Other column after its planning cards.
+- Multiblock generators (EU out, no `outputTier`) get dynamo settings in the registry (`dynamos.ts`, `withDynamos`):
+  the picked tier is their output voltage. Too few dynamo amps is a warning, never a cap: in the game it explodes.
+  A singleblock source sets its own `outputTier` (and so gets no dynamos); the solar panel and the RTG do.
 - A transformer is a power card with an EU input (`PowerModel.euInput`) and an explicit EU output (`euOutput`): one
   block moves the high side's voltage times 1, 4 or 16 A, less the output tier's packet loss (`euPacketLoss`). Its
   `euPerTick` is that loss, negative, so the machine list counts it as a draw and searches for power never list it.

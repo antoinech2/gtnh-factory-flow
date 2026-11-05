@@ -4,6 +4,7 @@
  * docs/power-planner-math.md; where the workbook leaves a cost out (IC2
  * rods), the card says so.
  */
+import { getVoltageTierForEuT } from "@/lib/model/tiers";
 import { powerPlannerData } from "../planner-data";
 import type { PowerModel, PowerSourceDefinition } from "../types";
 import { formatAmount, items, lifespanHours, liters, percent, stat } from "./helpers";
@@ -608,6 +609,8 @@ const solarPanel: PowerSourceDefinition = {
     const duty = read.number("duty") / 100;
     return {
       euPerTick: panel.eut * duty,
+      // A singleblock: 1 A at its daytime voltage.
+      outputTier: getVoltageTierForEuT(panel.eut),
       inputs: [],
       outputs: [],
       stats: [stat("Daytime output", `${formatAmount(panel.eut)} EU/t`)],

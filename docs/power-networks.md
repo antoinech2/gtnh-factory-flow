@@ -1,12 +1,19 @@
 # Power networks
 
-Status: built: tiered EU, EU input rows, the adapter, wiring on the board, the overview, transformers (Normal,
-Hi-Amp, Power), the drawer's tier colour and amps (in its tip), the shortage note on a machine's Power row, and a
-machine's EU wire coming off when its tier changes. Website only for now; the mod (GTNH Planner) does not read these
-plans yet (see "The mod").
+Status: built: tiered EU, EU input rows, the adapter, wiring on the board, transformers (Normal, Hi-Amp, Power),
+dynamo settings on multiblock generators, the drawer's tier colour and its average and peak amps, the shortage note on
+a machine's Power row, a machine's EU wire coming off when its tier changes, the overview's line per network, and the
+drawer menu's "Wire N selected machines". Website only for now; the mod (GTNH Planner) does not read these plans yet
+(see "The mod").
 
-Not built yet: dynamo settings, the Active Transformer, "Connect selection", hiding EU wires, EU rows on
-shared-machine sections, and the overview's per-network lines.
+Not built yet: the Active Transformer, hiding EU wires, EU rows on shared-machine sections.
+
+- Dynamos (`src/lib/power/dynamos.ts`): every multiblock generator gets "Dynamo" (Auto, or a tier) and "Dynamo amps"
+  (0 for as many as it needs). The tier picks its network. GT5U 5.09.54.20 `addEnergyOutputMultipleDynamos`: a
+  multiblock making more than its dynamos carry explodes, so the card warns and the rate is not capped.
+- Peak amps (`networkPeakAmps`): a singleblock refills at up to floor(2 x EU/t / V) + 1 A, a multiblock 2 A a hatch or
+  its multi-amp hatch's rating, a transformer its input side's amps, each times its whole machines. The cable must
+  carry the peak, not the average.
 
 A power network is an EU drawer of one voltage tier. Generators of that tier feed it, machines of that tier draw from
 it, and transformers join two tiers. A plan can hold any number of networks side by side, as it holds any number of
