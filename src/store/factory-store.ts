@@ -2734,6 +2734,9 @@ export const useFactoryStore = create<FactoryStore>(withViewerGuard((set, get, w
   },
   setStorageDrainMode: (storageId, drainMode) => {
     set((state) => {
+      // There is no bin for electricity: unused EU dissipates on its own, so an EU drawer is never trash.
+      const target = (state.project.storages ?? []).find((storage) => storage.id === storageId);
+      if (drainMode === "trash" && target?.kind === "power") return state;
       const project = touchProject({
         ...state.project,
         storages: (state.project.storages ?? []).map((storage) =>

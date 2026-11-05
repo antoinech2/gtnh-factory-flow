@@ -317,8 +317,9 @@ export function CleanDrawer({
         });
       }
     }
-    // Product and trash take turns; a source and a buffer are what their wires make them.
-    if (view.kind === "product" || view.kind === "trash") {
+    // Product and trash take turns; a source and a buffer are what their wires make them. EU is never voided: there
+    // is no bin for electricity (a trash EU drawer from an older plan still offers its way back).
+    if ((view.kind === "product" && storage.kind !== "power") || view.kind === "trash") {
       rows.push({
         mark: "",
         label: view.kind === "trash" ? TO_PRODUCT : TO_TRASH,

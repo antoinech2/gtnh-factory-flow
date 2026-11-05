@@ -167,6 +167,15 @@ describe("the rule menu", () => {
     expect(Array.from(document.querySelectorAll("[role^=menuitem]")).map((row) => row.textContent)).toEqual(["Any~", "At least≥", "Exactly=", "At most≤"]);
   });
 
+  it("an EU product has the four rules and no void row, and the store never makes it trash", () => {
+    load(storage({ kind: "power", resourceId: "eu:lv", displayName: "LV EU" }));
+    const { container } = renderDrawer(stored(), "product");
+    fireEvent.click(container.querySelector(".cd-key")!);
+    expect(Array.from(document.querySelectorAll("[role^=menuitem]")).map((row) => row.textContent)).toEqual(["Any~", "At least≥", "Exactly=", "At most≤"]);
+    useFactoryStore.getState().setStorageDrainMode(stored().id, "trash");
+    expect(stored().drainMode).toBeUndefined();
+  });
+
   it("trash has one row: Keep it (product)", () => {
     load(storage({ drainMode: "trash" }));
     const { container } = renderDrawer(stored(), "trash");
