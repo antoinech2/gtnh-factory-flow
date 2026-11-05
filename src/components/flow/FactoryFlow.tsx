@@ -131,6 +131,7 @@ import type {
   ThroughputResult,
 } from "@/lib/model/types";
 import { getNodeEuInput } from "@/lib/solver/eu-input";
+import { euTierOf } from "@/lib/power/eu";
 import {
   captureBoardSelection,
   findToggleDuplicateEdge,
@@ -313,7 +314,7 @@ import { GT_TIER_COLORS } from "./tier-colors";
 import { isPowerDisplayUnit, type RateUnit } from "@/lib/model/rate-unit";
 import { useIsCompactViewport } from "@/lib/compact-view";
 import { useUiScale } from "@/lib/ui-scale";
-import { subscribeDeviceSettings, wheelChangesValues } from "@/lib/device-settings";
+import { readDeviceSettings, subscribeDeviceSettings, wheelChangesValues } from "@/lib/device-settings";
 import { BOARD_TOOL_SCALE, useToolbarFold } from "./toolbar-fold";
 import { browseHoveredPort } from "./port-browse";
 import { useBoardTouchGestures } from "./board-touch-gestures";
@@ -2040,6 +2041,15 @@ interface ResolvedResourceHandle {
 }
 
 export function FactoryFlow() {
+  // "Power wires" (Settings, Board): one attribute on the page draws EU wires faint (globals.css), so no wire
+  // re-renders when it changes.
+  useEffect(() => {
+    const apply = () => {
+      document.documentElement.dataset.powerWires = readDeviceSettings().powerWiresFull ? "full" : "faint";
+    };
+    apply();
+    return subscribeDeviceSettings(apply);
+  }, []);
   const isReadOnly = useFactoryStore((state) => state.isReadOnly);
   const project = useFactoryStore((state) => state.project);
   const result = useFactoryStore((state) => state.lastResult);
@@ -8889,8 +8899,13 @@ function ResourceEdgeComponent({
   // A power wire is ALWAYS the POWER button's amber - never the resource
   // color pipeline's saturate/brighten pass, never the glance flow ramp.
   const isPowerEdge = data?.resource?.kind === "power";
+  // A power network's wire wears its voltage's GT colour (lifted a little off the dark board), so the tiers read at a
+  // glance; an untiered wire keeps the amber.
+  const euTier = isPowerEdge ? euTierOf(data?.resource?.id ?? "") : undefined;
   const edgeColor = isPowerEdge
-    ? "#fbbf24"
+    ? euTier
+      ? brightenHexColor(GT_TIER_COLORS[euTier].background, 0.3)
+      : "#fbbf24"
     : flowRate?.color === true && boardDetailLevel === NODE_DETAIL_GLANCE
       ? flowRampColor(flowRate.heat)
       : resolvedResourceColor;
@@ -9201,6 +9216,7 @@ function ResourceEdgeComponent({
           <BaseEdge
             path={drawnPath}
             interactionWidth={0}
+            className={isPowerEdge ? "flow-eu-wire" : undefined}
             // Normalized during a timelapse so the draw-in covers any route
             // exactly; see ResourceEdgeData.timelapseDraw.
             pathLength={data?.timelapseDraw ? 1 : undefined}
@@ -9232,6 +9248,7 @@ function ResourceEdgeComponent({
           <BaseEdge
             path={drawnPath}
             interactionWidth={0}
+            className={isPowerEdge ? "flow-eu-wire" : undefined}
             pathLength={data?.timelapseDraw ? 1 : undefined}
             style={{
               ...style,

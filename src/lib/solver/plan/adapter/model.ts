@@ -127,6 +127,9 @@ export interface PlanModel {
 
 const MISSING = "missing";
 
+/** The id of a shared card's EU wire's link to its section n (`<edge>#eu<n>`): never a wire of the plan. */
+const SECTION_EU_LINK = "#eu";
+
 function plainUnit(): PlanUnit {
   return { durationTicks: TICKS_PER_SECOND, throughputFactor: 1 };
 }
@@ -223,7 +226,8 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
     const section = parseSectionNodeId(node.id).section;
     const inputs = buildRows(node.id, true, report.inputs, amountOf("i"));
     const eu = getNodeEuInput(recipe, node);
-    if (eu && euWired.has(`${node.id}|${eu.resource.id}`)) {
+    // A shared machine is one machine on one network: a wire into the card brings every section its EU.
+    if (eu && euWired.has(`${parseSectionNodeId(node.id).nodeId}|${eu.resource.id}`)) {
       inputs.push(euRow(node.id, inputs.length, eu, readable ? opRate : 0));
     }
     entries.push({
@@ -251,6 +255,7 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
   }
 
   // ---- edges and drawer wires ---------------------------------------------
+  const covers = new Map(flat.covers);
   const engineEdges = new Map<string, { edge: FactoryEdge; source: PortRow; target: PortRow }>();
   const edgeIns: EdgeIn[] = [];
   const drawerEdges = new Map<string, DrawerEdge>();
@@ -300,6 +305,21 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
           drawerId: edge.source,
           ref: { node: target.id, port: into.index, input: true },
         });
+      }
+      // The card's EU wire supplies its other sections too: one link each, read back onto the card's one wire.
+      if (edge.resourceKind === "power" && (role === "source" || role === "buffer")) {
+        for (const sectionId of groups.get(target.id) ?? []) {
+          const section = sectionId === target.id ? undefined : machines.get(sectionId);
+          const row = section ? inputRowFor(section.inputs, edge) : undefined;
+          if (!section || !row) continue;
+          const linkId = `${edge.id}${SECTION_EU_LINK}${section.section}`;
+          drawerEdges.set(linkId, {
+            edgeId: linkId,
+            drawerId: edge.source,
+            ref: { node: section.id, port: row.index, input: true },
+          });
+          covers.set(linkId, covers.get(edge.id) ?? [edge.id]);
+        }
       }
     }
   }
@@ -520,7 +540,7 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
     engineEdges,
     drawerEdges,
     edges: flat.edges,
-    covers: flat.covers,
+    covers,
     storages: flat.storages,
     roles,
     drawers: drawerMap,

@@ -132,6 +132,14 @@ export function ModSettings({ onClose }: { onClose: () => void }) {
           to: (index) => writeDeviceSettings({ problemOutlines: index === 1 }),
         },
         {
+          label: "Power wires",
+          about: "Draws EU wires faint so material wires stand out.",
+          kind: "switch",
+          names: ["Faint", "Full"],
+          at: settings.powerWiresFull ? 1 : 0,
+          to: (index) => writeDeviceSettings({ powerWiresFull: index === 1 }),
+        },
+        {
           label: "Scroll changes values",
           about: "Scroll over a number or chip to change it.",
           kind: "switch",

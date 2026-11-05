@@ -536,6 +536,11 @@ textarea {
   fill: var(--canvas);
 }
 
+/* "Power wires: Faint" (Settings, Board): EU wires step back so material wires stand out. Opacity only. */
+html[data-power-wires="faint"] .flow-eu-wire {
+  opacity: 0.2;
+}
+
 .factory-flow-board .react-flow__edges {
   z-index: 80 !important;
   /* The wires cast too, as one filter over the whole layer so the cost never

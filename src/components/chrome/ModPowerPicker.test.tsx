@@ -50,8 +50,8 @@ describe("the non-recipe machines picker", () => {
     expect(columns[3]).toEqual(["ENGINES", "SOLAR"]);
     expect(columns[4]).toEqual(["REACTORS", "ENDGAME"]);
     const other = document.querySelector(".mp-col")!.querySelectorAll(".mp-group")[0];
-    expect([...other.querySelectorAll(".mp-tile")].map((tile) => tile.getAttribute("data-source"))).toEqual(["custom-rate", "fluid-tank", "crop-farm", "railcraft-water-tank", "transformer"]);
-    expect(other.querySelector(".mp-brass i")?.textContent).toBe("5");
+    expect([...other.querySelectorAll(".mp-tile")].map((tile) => tile.getAttribute("data-source"))).toEqual(["custom-rate", "fluid-tank", "crop-farm", "railcraft-water-tank", "transformer", "active-transformer"]);
+    expect(other.querySelector(".mp-brass i")?.textContent).toBe("6");
     // The Railcraft Boiler sits with the other boilers.
     const steam = [...document.querySelectorAll(".mp-group")].find((group) => group.querySelector(".mp-brass span")?.textContent === "BOILERS AND EXCHANGERS")!;
     expect(steam.querySelector('[data-source="railcraft-boiler"]')).toBeTruthy();
@@ -94,12 +94,12 @@ describe("the non-recipe machines picker", () => {
     expect(document.querySelector(".mp-none")?.textContent).toBe("No machine burns, makes or is named that.");
   });
 
-  it("the type filter narrows to one group, and Other keeps the planning cards, the water tank and the transformer", () => {
+  it("the type filter narrows to one group, and Other keeps the planning cards, the water tank and the transformers", () => {
     render(<ModPowerPicker />);
     fireEvent.click(screen.getByText("All types"));
     fireEvent.click(screen.getByText("Other"));
     expect(titles()).toEqual(["OTHER"]);
-    expect(document.querySelectorAll(".mp-tile")).toHaveLength(5);
+    expect(document.querySelectorAll(".mp-tile")).toHaveLength(6);
   });
 
   it("Escape closes it", () => {

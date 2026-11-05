@@ -147,6 +147,9 @@ The board must stay smooth with 100+ cards on weak PCs.
 - Drawer, trash and minimized-board ends meet their card square (`sourceSquare`/`targetSquare`): a 45° stub into a
   two-cell drawer reads as aimed at the wrong spot. Past the clean run the wire may still go diagonal.
 - Crossing hops (`wire-hops.ts`) are measured along the whole wire; arrows avoid hops.
+- An EU wire wears its tier's GT colour (`euTierOf`, `GT_TIER_COLORS`) and the class `flow-eu-wire`; "Power wires:
+  Faint" (Settings, Board) is one attribute on the page (`html[data-power-wires]`, globals.css), so no wire re-renders.
+  A machine's EU input is its Power row (`PowerRow` in CleanCard.tsx), never a port row (docs/power-networks.md).
 - Count crossings with `measureWireRoutes` (`src/lib/route-metrics.ts`), which counts them
   at bends and run ends too. Tools: `router-replay.local.test.ts`,
   `node tools/audit-board.mjs <plan.json> <output-prefix> [--arrange] [--layout <file>]`

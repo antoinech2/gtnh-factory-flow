@@ -25,6 +25,8 @@ export interface DeviceSettings {
   zoomedOutAt: number;
   /** "Problem outlines": a card with a problem draws its edge in its bar's colour. */
   problemOutlines: boolean;
+  /** "Power wires": EU wires drawn full (true) or faint, so material wires stand out (`html[data-power-wires]`). */
+  powerWiresFull: boolean;
   /**
    * "Scroll changes values": the wheel over a number, chip or key steps it. Off, the wheel never changes a value:
    * over the board it zooms, elsewhere it scrolls. Handlers ask `wheelChangesValues()`.
@@ -50,6 +52,7 @@ export const DEFAULT_DEVICE_SETTINGS: DeviceSettings = {
   zoomedOutNames: true,
   zoomedOutAt: DEFAULT_ZOOMED_OUT_AT,
   problemOutlines: true,
+  powerWiresFull: true,
   scrollChangesValues: true,
   itemsLeft: false,
   overviewWidth: OVERVIEW_DEFAULT_WIDTH,
@@ -83,6 +86,10 @@ export function parseDeviceSettings(raw: string | null): DeviceSettings {
         typeof parsed.problemOutlines === "boolean"
           ? parsed.problemOutlines
           : DEFAULT_DEVICE_SETTINGS.problemOutlines,
+      powerWiresFull:
+        typeof parsed.powerWiresFull === "boolean"
+          ? parsed.powerWiresFull
+          : DEFAULT_DEVICE_SETTINGS.powerWiresFull,
       scrollChangesValues:
         typeof parsed.scrollChangesValues === "boolean"
           ? parsed.scrollChangesValues

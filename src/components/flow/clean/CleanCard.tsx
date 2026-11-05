@@ -45,6 +45,7 @@ import type {
   CleanChipView,
   CleanFootView,
   CleanPortView,
+  CleanPowerView,
 } from "./clean-model";
 import {
   circuitNumber,
@@ -870,6 +871,48 @@ export interface CleanCardProps {
   node: FactoryNode;
 }
 
+/**
+ * The card's Power row: what the machine draws, and its EU input when it has one (`CleanPowerView.handleId`): a power
+ * network of the card's tier wires here (docs/power-networks.md). The plain and the special cards both draw it.
+ */
+export function PowerRow({ nodeId, power, tip }: { nodeId: string; power: CleanPowerView; tip: TipSpec }) {
+  return (
+    <div
+      className="cc-row"
+      data-power=""
+      data-side="input"
+      data-stalled={power.stalled || power.short ? "" : undefined}
+      data-wired={power.handleId ? (power.wired ? "true" : "false") : undefined}
+      {...(power.handleId
+        ? {
+            "data-resource-edge-anchor": "true",
+            "data-resource-node-id": nodeId,
+            "data-resource-handle-id": power.handleId,
+          }
+        : {})}
+      {...tipAttrs(tip)}
+    >
+      <span className="cc-bolt" />
+      <span className="cc-num" data-unit={power.unit}>
+        {power.number}
+      </span>
+      <span className="cc-pname">{power.name}</span>
+      {power.handleId ? (
+        <Handle
+          id={power.handleId}
+          type="target"
+          position={Position.Left}
+          data-resource-handle="true"
+          data-resource-node-id={nodeId}
+          data-resource-handle-id={power.handleId}
+          aria-label="Input: EU. Drag to connect a power network"
+          className="resource-slot-handle nodrag !absolute !left-0 !right-auto !top-0 !z-30 !h-full !w-full !min-w-0 !translate-x-0 !translate-y-0 !rounded-none !border-0 !bg-transparent !opacity-0 cursor-crosshair"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 /** The clean recipe card: header, hairline, port rails around the picture, power row, settings strip. */
 export function CleanCard({ view, actions, context, recipe, node }: CleanCardProps) {
   const { wasClick, onPointerDownCapture } = useClickSlop();
@@ -1065,40 +1108,11 @@ export function CleanCard({ view, actions, context, recipe, node }: CleanCardPro
           <CleanPortRow key={p.key} p={p} wasClick={wasClick} unset={view.unset} />
         ))}
         {view.power ? (
-          <div
-            className="cc-row"
-            data-power=""
-            data-side="input"
-            data-stalled={view.power.stalled || view.power.short ? "" : undefined}
-            data-wired={view.power.handleId ? (view.power.wired ? "true" : "false") : undefined}
-            {...(view.power.handleId
-              ? {
-                  "data-resource-edge-anchor": "true",
-                  "data-resource-node-id": view.nodeId,
-                  "data-resource-handle-id": view.power.handleId,
-                }
-              : {})}
-            {...tipAttrs(view.amps ? powerPanelTip(view, "power") : powerRowTip(view, tipFacts))}
-          >
-            <span className="cc-bolt" />
-            <span className="cc-num" data-unit={view.power.unit}>
-              {view.power.number}
-            </span>
-            <span className="cc-pname">{view.power.name}</span>
-            {view.power.handleId ? (
-              // The EU input: a power network of the card's tier wires here (docs/power-networks.md).
-              <Handle
-                id={view.power.handleId}
-                type="target"
-                position={Position.Left}
-                data-resource-handle="true"
-                data-resource-node-id={view.nodeId}
-                data-resource-handle-id={view.power.handleId}
-                aria-label="Input: EU. Drag to connect a power network"
-                className="resource-slot-handle nodrag !absolute !left-0 !right-auto !top-0 !z-30 !h-full !w-full !min-w-0 !translate-x-0 !translate-y-0 !rounded-none !border-0 !bg-transparent !opacity-0 cursor-crosshair"
-              />
-            ) : null}
-          </div>
+          <PowerRow
+            nodeId={view.nodeId}
+            power={view.power}
+            tip={view.amps ? powerPanelTip(view, "power") : powerRowTip(view, tipFacts)}
+          />
         ) : null}
       </div>
 

@@ -21,6 +21,7 @@ import {
   StripChip,
   TierChip,
   AmpsChip,
+  PowerRow,
   glyph,
 } from "../CleanCard";
 import { frameTone, type CleanCardView, type CleanChipView } from "../clean-model";
@@ -470,20 +471,14 @@ export function SpecialCard({ model, recipe, node }: SpecialCardProps) {
     view.glance,
   );
 
+  // One Power row for the whole card, a shared machine's too: one machine, one network (its sections draw through
+  // the one wire, the adapter's `euRow` per section).
   const powerRowView = view.power ? (
-    <div
-      className="cc-row"
-      data-power=""
-      data-side="input"
-      data-stalled={view.power.stalled ? "" : undefined}
-      {...tipAttrs(view.amps ? powerPanelTip(tipView, "power") : powerRowTip(tipView, tipFacts))}
-    >
-      <span className="cc-bolt" />
-      <span className="cc-num" data-unit={view.power.unit}>
-        {view.power.number}
-      </span>
-      <span className="cc-pname">{view.power.name}</span>
-    </div>
+    <PowerRow
+      nodeId={view.nodeId}
+      power={view.power}
+      tip={view.amps ? powerPanelTip(tipView, "power") : powerRowTip(tipView, tipFacts)}
+    />
   ) : null;
 
   return (

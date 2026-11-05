@@ -6,7 +6,11 @@ a machine's Power row, a machine's EU wire coming off when its tier changes, the
 drawer menu's "Wire N selected machines". Website only for now; the mod (GTNH Planner) does not read these plans yet
 (see "The mod").
 
-Not built yet: the Active Transformer, hiding EU wires, EU rows on shared-machine sections.
+Also built: the Active Transformer (any two tiers, 0.004% loss, its energy hatches' amps), EU wires in their tier's GT
+colour, the "Power wires: Faint" setting (Settings, Board), and shared machines: the card's one EU wire supplies
+every recipe on it (the adapter links each section's EU row to the wire's drawer and reads the flows back onto it).
+
+Not built yet: the mod's side (see "The mod").
 
 - Dynamos (`src/lib/power/dynamos.ts`): every multiblock generator gets "Dynamo" (Auto, or a tier) and "Dynamo amps"
   (0 for as many as it needs). The tier picks its network. GT5U 5.09.54.20 `addEnergyOutputMultipleDynamos`: a

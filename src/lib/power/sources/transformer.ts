@@ -86,4 +86,66 @@ export const transformer: PowerSourceDefinition = {
   },
 };
 
-export const transformerSources: PowerSourceDefinition[] = [transformer];
+/** The Active Transformer's loss on everything through it (wiki, Active Transformer). */
+const ACTIVE_LOSS = 0.00004;
+
+/**
+ * The Active Transformer (ZPM multiblock, wiki: Active Transformer): any voltage to any other, whatever the amps, at
+ * 0.004% loss. What one carries is what its energy hatches take: their amps at the input voltage.
+ */
+export const activeTransformer: PowerSourceDefinition = {
+  id: "active-transformer",
+  name: "Active Transformer",
+  group: "other",
+  unlock: "ZPM",
+  blurb: "Joins two power networks of any voltages.",
+  settings: [
+    {
+      type: "select",
+      id: "from",
+      label: "From",
+      options: GT_VOLTAGE_TIERS.map(({ tier }) => ({ key: tier, label: tier })),
+      defaultKey: "LuV",
+    },
+    {
+      type: "select",
+      id: "to",
+      label: "To",
+      options: GT_VOLTAGE_TIERS.map(({ tier }) => ({ key: tier, label: tier })),
+      defaultKey: "IV",
+    },
+    {
+      type: "number",
+      id: "amps",
+      label: "Energy hatch amps",
+      min: 1,
+      max: 16_777_216,
+      step: 1,
+      defaultValue: 2,
+      unit: "A at its input voltage",
+    },
+  ],
+  compute(read): PowerModel {
+    const tierOf = (key: string): VoltageTier =>
+      GT_VOLTAGE_TIERS.find((entry) => entry.tier === key)?.tier ?? "IV";
+    const from = tierOf(read.select("from"));
+    const to = tierOf(read.select("to"));
+    const amps = read.number("amps");
+    const moved = (GT_VOLTAGE_TIERS.find((entry) => entry.tier === from)?.maxEuT ?? 0) * amps;
+    const out = moved * (1 - ACTIVE_LOSS);
+    return {
+      euPerTick: out - moved,
+      euInput: { tier: from, perTick: moved },
+      euOutput: { tier: to, perTick: out },
+      inputs: [],
+      outputs: [],
+      stats: [
+        stat("Takes", `${formatAmount(amps)} A ${from}`),
+        stat("Gives", `${formatAmount(out)} EU/t ${to}`),
+        stat("Loss", percent(ACTIVE_LOSS)),
+      ],
+    };
+  },
+};
+
+export const transformerSources: PowerSourceDefinition[] = [transformer, activeTransformer];

@@ -41,6 +41,7 @@ describe("the settings box", () => {
       "Names when zoomed out",
       "Zoomed-out view",
       "Problem outlines",
+      "Power wires",
       "Scroll changes values",
       "Item browser",
       "Font",
@@ -118,6 +119,15 @@ describe("the settings box", () => {
     expect(readDeviceSettings().problemOutlines).toBe(true);
     fireEvent.click(screen.getByText("Problem outlines"));
     expect(readDeviceSettings().problemOutlines).toBe(false);
+  });
+
+  it("Power wires switches EU wires between full and faint, kept on this device", () => {
+    render(<ModSettings onClose={vi.fn()} />);
+    expect(readDeviceSettings().powerWiresFull).toBe(true);
+    fireEvent.click(screen.getByText("Power wires"));
+    expect(readDeviceSettings().powerWiresFull).toBe(false);
+    fireEvent.click(screen.getByText("Power wires"));
+    expect(readDeviceSettings().powerWiresFull).toBe(true);
   });
 
   it("Minimap is a section of the minimap's own rows", () => {

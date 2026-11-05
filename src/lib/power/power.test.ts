@@ -828,6 +828,14 @@ describe("power recipes", () => {
     expect(down.power!.euPerTick).toBeLessThan(0);
   });
 
+  it("an Active Transformer joins any two voltages at 0.004% loss, carrying its hatches' amps", () => {
+    const active = buildPowerRecipe("active-transformer", { from: "ZPM", to: "LV", amps: "4" }, "a")!;
+    expect(active.inputs[0]).toMatchObject({ kind: "power", id: "eu:zpm", amount: 4 * 131072 * 20 });
+    expect(active.outputs[0]).toMatchObject({ kind: "power", id: "eu:lv" });
+    expect(active.outputs[0]!.amount).toBeCloseTo(4 * 131072 * 20 * (1 - 0.00004), 6);
+    expect(active.power!.euPerTick).toBeLessThan(0);
+  });
+
   it("puts each generator's EU out at its own tier", () => {
     // A singleblock: 1 A of the tier picked.
     expect(buildPowerRecipe("gas-turbine", { tier: "HV" }, "r")?.outputs[0]?.id).toBe("eu:hv");

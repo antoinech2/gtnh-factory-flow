@@ -153,6 +153,43 @@ describe("power networks", () => {
     expect(result.plan?.forced).toEqual([]);
   });
 
+  it("a shared machine's one EU wire supplies every recipe on it", () => {
+    // One card runs plates (section 0) and rods (section 1), 30 EU/t each; 2 plates/s and 2 rods/s.
+    const rods = recipe("rods", [["ore", 1]], [["rod", 1]]);
+    const p = project({
+      recipes: [turbine, press, rods],
+      nodes: [node("gen", "turbine"), node("press", "press", { extraRecipes: [{ recipeId: "rods" }] })],
+      storages: [
+        { ...drawer("fuel", benzene.id), kind: "fluid" } as FactoryStorage,
+        drawer("ore-in", "ore"),
+        drawer("plates", "plate", { targetPerSecond: 2, targetMode: "at-least" }),
+        drawer("rods-out", "rod", { targetPerSecond: 2, targetMode: "at-least" }),
+        { id: "grid", kind: "power", resourceId: "eu:lv", displayName: "LV EU", position: { x: 0, y: 0 } },
+      ],
+      edges: [
+        {
+          id: "w-fuel",
+          source: "fuel",
+          target: "gen",
+          targetHandle: `input:fluid:${encodeURIComponent(benzene.id)}`,
+          resourceKind: "fluid",
+          resourceId: benzene.id,
+        },
+        wire("w-ore", "ore-in", "press", "ore", {}, { fromDrawer: true }),
+        wire("w-ore-1", "ore-in", "press", "ore", { to: 1 }, { fromDrawer: true }),
+        wire("w-plate", "press", "plates", "plate", {}, { toDrawer: true }),
+        wire("w-rod", "press", "rods-out", "rod", { from: 1 }, { toDrawer: true }),
+        euWire("w-gen", "gen", "grid"),
+        euWire("w-press", "grid", "press"),
+      ],
+    });
+    const { result } = solve(p);
+    // 4 crafts a second at 600 EU each, both recipes through the card's one wire.
+    expect(result.edges["w-press"]?.transferredPerSecond).toBeCloseTo(2400, 6);
+    expect(result.nodes.gen?.theoreticalMachinesRequired).toBeCloseTo(3.75, 9);
+    expect(result.plan?.forced).toEqual([]);
+  });
+
   it("an Exactly generator count too small shows the EU the network lacks as a Forced in row", () => {
     // The solver's doctrine for any resource under a fixed count; the board has to read it as a shortage.
     const { result } = solve(networkPlan({ wired: true, turbine: { solvePin: 2, solvePinExact: true } }));
