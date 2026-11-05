@@ -1,3 +1,5 @@
+import type { VoltageTier } from "./eu";
+
 /**
  * The power sector's card model. A PowerSourceDefinition is one placeable
  * generator family: its settings (the knobs on the card) and a pure compute
@@ -84,6 +86,11 @@ export interface PowerStatLine {
 export interface PowerModel {
   /** Net EU/t of one machine at these settings; negative for parasitic-only machines. */
   euPerTick: number;
+  /**
+   * The voltage its EU leaves at: a singleblock's own tier. Absent, the highest tier whose voltage fits inside
+   * `euPerTick` (a multiblock until it has dynamo settings).
+   */
+  outputTier?: VoltageTier;
   inputs: PowerFlowLine[];
   outputs: PowerFlowLine[];
   stats: PowerStatLine[];

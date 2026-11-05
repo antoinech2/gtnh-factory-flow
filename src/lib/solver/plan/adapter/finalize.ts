@@ -46,6 +46,11 @@ export function finalizePlanResult(
       continue;
     }
     const entry = model.machines.get(nodeResult.nodeId);
+    // A wired EU input is a row of the solve the nameplate report never had: its flow joins the card's inputs, so
+    // the overview counts what a network's machines draw against what its generators make.
+    for (const row of entry?.inputs ?? []) {
+      if (row.kind === "power" && !nodeResult.inputs[row.key]) nodeResult.inputs[row.key] = { ...row.flow };
+    }
     const count = reading.counts.get(nodeResult.nodeId) ?? 0;
     const built = entry?.builtCount ?? 0;
     const upTo = reading.extras.upTo?.[nodeResult.nodeId];

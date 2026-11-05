@@ -6,8 +6,11 @@
   charge; HTGR: fuel, burned fuel and 256 L helium lost per cycle, cycle length from
   onRunningTick's speedups, `htgrOperation` in `sources/reactors.ts`).
 - A power card's unlock chip is the tier of the controller's own recipe.
-- EU is a wireable resource. The EU-per-unit rate display never splits energy between a
-  recipe's outputs (`src/lib/model/rate-unit.ts`).
+- EU is a wireable resource, one per voltage tier (`eu.ts`: `power:eu:lv`...): a generator's EU leaves at its
+  `outputTier` (a singleblock's own tier, else the highest voltage inside its EU/t), and a machine draws through its
+  EU input row (`src/lib/solver/eu-input.ts`), sent to the solve only when wired. Older plans' untiered `eu` wires
+  take their generator's tier on load (`eu-wires.ts`). Design: `docs/power-networks.md`. The EU-per-unit rate
+  display never splits energy between a recipe's outputs (`src/lib/model/rate-unit.ts`).
 - Coolant cells are ports; the vacuum freezer is a placed machine, not built in.
 - "Free" inputs (`FREE_INPUT_ITEM_IDS`) are never consumed or wired.
 - Tooltips can lie (the ECE's lubricant line) and the workbook can be wrong (MOX rods);
@@ -23,7 +26,8 @@
 - New flow names resolve through `tools/power-resource-map.mjs` (`AUX_NAMES`); an
   unresolved name shows as a stat, not a port.
 - Retiring a select option key needs `legacyKeys`: shipped plans store the old key.
-- Exam: `power.test.ts`, `rotor-data.test.ts` and each `sources/*.test.ts` (Java values).
+- Exam: `power.test.ts`, `rotor-data.test.ts` and each `sources/*.test.ts` (Java values); power networks:
+  `eu-wires.test.ts`, `src/lib/solver/power-network.test.ts`, `src/store/power-network-wiring.test.ts`.
 - Railcraft's Water Tank and boiler (`sources/railcraft.ts`) follow Railcraft's own source (GTNH fork, tag
   9.17.26), not the workbook; the mod pins the same values. The tank is the one source in the
   "other" group, the picker's Other column after its planning cards.

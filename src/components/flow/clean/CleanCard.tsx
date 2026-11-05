@@ -1070,6 +1070,14 @@ export function CleanCard({ view, actions, context, recipe, node }: CleanCardPro
             data-power=""
             data-side="input"
             data-stalled={view.power.stalled ? "" : undefined}
+            data-wired={view.power.handleId ? (view.power.wired ? "true" : "false") : undefined}
+            {...(view.power.handleId
+              ? {
+                  "data-resource-edge-anchor": "true",
+                  "data-resource-node-id": view.nodeId,
+                  "data-resource-handle-id": view.power.handleId,
+                }
+              : {})}
             {...tipAttrs(view.amps ? powerPanelTip(view, "power") : powerRowTip(view, tipFacts))}
           >
             <span className="cc-bolt" />
@@ -1077,6 +1085,19 @@ export function CleanCard({ view, actions, context, recipe, node }: CleanCardPro
               {view.power.number}
             </span>
             <span className="cc-pname">{view.power.name}</span>
+            {view.power.handleId ? (
+              // The EU input: a power network of the card's tier wires here (docs/power-networks.md).
+              <Handle
+                id={view.power.handleId}
+                type="target"
+                position={Position.Left}
+                data-resource-handle="true"
+                data-resource-node-id={view.nodeId}
+                data-resource-handle-id={view.power.handleId}
+                aria-label="Input: EU. Drag to connect a power network"
+                className="resource-slot-handle nodrag !absolute !left-0 !right-auto !top-0 !z-30 !h-full !w-full !min-w-0 !translate-x-0 !translate-y-0 !rounded-none !border-0 !bg-transparent !opacity-0 cursor-crosshair"
+              />
+            ) : null}
           </div>
         ) : null}
       </div>

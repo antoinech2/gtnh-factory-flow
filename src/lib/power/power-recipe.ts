@@ -7,7 +7,9 @@
  * buildPowerRecipe, and normalizeLoadedProject resynthesizes on load so
  * stored plans always carry the current math.
  */
+import { getVoltageTierWithinEuT } from "@/lib/model/tiers";
 import type { FactoryNode, Recipe, RecipeInput, RecipeOutput } from "@/lib/model/types";
+import { euResource, type VoltageTier } from "./eu";
 import { resolvePowerResource } from "./planner-data";
 import { getPowerSource } from "./registry";
 import { buildPowerSettingsReader, type PowerFlowLine, type PowerModel } from "./types";
@@ -15,26 +17,17 @@ import { formatAmount } from "./sources/helpers";
 
 export const POWER_RECIPE_CATEGORY = "power-source";
 
-/**
- * EU as a RESOURCE: the one canonical power resource every generator's
- * recipe outputs. It rides ports, wires, drawers and the solve like any
- * resource; nothing consumes it (kind matching is strict), so its wires
- * only ever land on drawers. Flows are per-second like every flow - the
- * display layer alone converts to EU/t.
- */
-export const POWER_EU_RESOURCE = {
-  kind: "power",
-  id: "eu",
-  displayName: "EU",
-  // The power amber: the POWER button's own text-amber-400, so wires and
-  // tints match the button that starts the whole wing.
-  dominantColor: "#fbbf24",
-} as const;
+/** The tier a generator's EU leaves at: its own when the source says, else the highest voltage inside its EU/t. */
+export function powerOutputTier(model: Pick<PowerModel, "euPerTick" | "outputTier">): VoltageTier {
+  return model.outputTier ?? getVoltageTierWithinEuT(model.euPerTick);
+}
 
 export interface RecipePowerInfo {
   sourceId: string;
   /** Net EU/t of one machine at the baked settings; negative = parasitic. */
   euPerTick: number;
+  /** The tier its EU output carries (`eu:<tier>`). */
+  tier?: VoltageTier;
   stats: Array<{ label: string; value: string }>;
   warnings?: string[];
 }
@@ -96,12 +89,13 @@ export function buildPowerRecipe(
   const model = source.compute(buildPowerSettingsReader(source, settings));
   const inputs = model.inputs.map(flowToSlot).filter(Boolean) as RecipeInput[];
   const outputs = model.outputs.map(flowToSlot).filter(Boolean) as RecipeOutput[];
-  // The EU output port, FIRST on the rail (a generator's product is power).
-  // Marked byproduct so primaryOutput never crowns it over a material
-  // output, and per second (x20) like every flow.
+  // The EU output port, FIRST on the rail (a generator's product is power), as
+  // EU of the tier it leaves at. Marked byproduct so primaryOutput never crowns
+  // it over a material output, and per second (x20) like every flow.
+  const tier = powerOutputTier(model);
   if (model.euPerTick > 0) {
     outputs.unshift({
-      ...POWER_EU_RESOURCE,
+      ...euResource(tier),
       amount: model.euPerTick * 20,
       byproduct: true,
     });
@@ -123,6 +117,7 @@ export function buildPowerRecipe(
     power: {
       sourceId,
       euPerTick: model.euPerTick,
+      tier,
       stats: [...model.stats, ...unresolvedFlowStats(model)],
       warnings: model.warnings,
     },

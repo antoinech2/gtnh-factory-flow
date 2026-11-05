@@ -9,6 +9,8 @@ import { isCustomRateRecipe, releaseCustomRates } from "./custom-rate";
 import { dedupeEdgeWires } from "./edge-identity";
 import { isTrashRecipe } from "./trash";
 import { resynthesizePowerRecipes } from "@/lib/power/power-recipe";
+import { retierUntieredEu } from "@/lib/power/eu-wires";
+import { getNodeEuInput } from "@/lib/solver/eu-input";
 import { snapPositionToGrid, snapSizeUpToGrid } from "@/lib/board-grid";
 import { sectionNodeView, splitSectionHandleId } from "./shared-machine";
 import { repairWiredInputOverrides } from "./edge-input-overrides";
@@ -116,10 +118,13 @@ function normalizeLegacyProject(project: FactoryProject): FactoryProject {
                     // node's settings, so stored plans pick up current
                     // generator math. Must run BEFORE the wire checks: a power
                     // recipe saved slotless would read as a card with no fluid
-                    // slot and lose its fuel wire to the cross-form drop.
-                    resynthesizePowerRecipes(
-                      normalizeProjectFuelProfiles(
-                        normalizeFullFarms(renameOpvTier(adoptSetupRules(requirePlanForSolve(requireSolveForPool(project))))),
+                    // slot and lose its fuel wire to the cross-form drop. Their
+                    // EU wires then take the tier of their output.
+                    retierUntieredEu(
+                      resynthesizePowerRecipes(
+                        normalizeProjectFuelProfiles(
+                          normalizeFullFarms(renameOpvTier(adoptSetupRules(requirePlanForSolve(requireSolveForPool(project))))),
+                        ),
                       ),
                     ),
                   ),
@@ -460,6 +465,10 @@ function dropCrossFormConnections(project: FactoryProject): FactoryProject {
     // slot list is not evidence of a broken wire, and must not fail the
     // check below (that would delete every wire into a can on load).
     if (isTrashRecipe(recipe)) {
+      return true;
+    }
+    // A machine's EU input is a port with no recipe slot (`getNodeEuInput`): a power network's wire into it stays.
+    if (side === "target" && kind === "power" && node && getNodeEuInput(recipe, node)) {
       return true;
     }
     const slots = side === "source" ? recipe.outputs : recipe.inputs;

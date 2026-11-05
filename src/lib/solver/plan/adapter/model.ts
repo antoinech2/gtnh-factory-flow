@@ -45,6 +45,32 @@ import {
   type PortRow,
 } from "./rows";
 import { findUnanchored } from "./unanchored";
+import { getNodeEuInput, type NodeEuInput } from "../../eu-input";
+import { makePortKey } from "../port-key";
+import { makeResourceKey } from "../../../model/resources";
+
+/** A machine's wired EU input as one more input row: its per-craft EU, at the end so recipe rows keep their index. */
+function euRow(nodeId: string, index: number, eu: NodeEuInput, opRate: number): PortRow {
+  const key = makeResourceKey(eu.resource.kind, eu.resource.id);
+  return {
+    input: true,
+    index,
+    key,
+    kind: eu.resource.kind,
+    resourceId: eu.resource.id,
+    displayName: eu.resource.displayName,
+    handle: eu.handleId,
+    portKey: makePortKey(nodeId, "i", eu.handleId),
+    amount: eu.euPerCraft,
+    flow: {
+      key,
+      kind: eu.resource.kind,
+      resourceId: eu.resource.id,
+      displayName: eu.resource.displayName,
+      amountPerSecond: eu.euPerCraft * opRate,
+    },
+  };
+}
 
 /** The core's `SolveInput`, as the adapter builds it from the board. */
 export type PlanSolveInput = SolveInput;
@@ -156,6 +182,11 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
   });
 
   // ---- machines ----------------------------------------------------------
+  // The EU each machine is wired to (`card|eu:mv`): only a wired EU input is a row, so a plan with no power network
+  // builds the same input as before and its machines' draw stays outside the books.
+  const euWired = new Set(
+    flat.edges.filter((edge) => edge.resourceKind === "power").map((edge) => `${edge.target}|${edge.resourceId}`),
+  );
   const entries: MachineEntry[] = [];
   for (const node of project.nodes) {
     const report = nodes[node.id];
@@ -190,12 +221,17 @@ export function buildPlanModel(args: PlanSolveArgs): PlanModel {
           ? (side === "i" ? unit.perCraft.inputs : unit.perCraft.outputs)[flow.key as ResourceKey] ?? 0
           : (side === "i" ? raw!.inputs : raw!.outputs).get(flow.key as never) ?? 0;
     const section = parseSectionNodeId(node.id).section;
+    const inputs = buildRows(node.id, true, report.inputs, amountOf("i"));
+    const eu = getNodeEuInput(recipe, node);
+    if (eu && euWired.has(`${node.id}|${eu.resource.id}`)) {
+      inputs.push(euRow(node.id, inputs.length, eu, readable ? opRate : 0));
+    }
     entries.push({
       id: node.id,
       node,
       recipe,
       report,
-      inputs: buildRows(node.id, true, report.inputs, amountOf("i")),
+      inputs,
       outputs: buildRows(node.id, false, report.outputs, amountOf("o")),
       builtCount,
       durationTicks: unit.durationTicks,

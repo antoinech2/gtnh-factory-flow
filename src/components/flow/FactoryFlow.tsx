@@ -130,6 +130,7 @@ import type {
   ResourceKind,
   ThroughputResult,
 } from "@/lib/model/types";
+import { getNodeEuInput } from "@/lib/solver/eu-input";
 import {
   captureBoardSelection,
   findToggleDuplicateEdge,
@@ -12889,6 +12890,10 @@ function getDraggedResourceForHandle(
     return undefined;
   }
 
+  const euInput = euInputForHandle(recipe, node, handle);
+  if (euInput) {
+    return { nodeId, side: handle.side, handleId, kind: euInput.kind, id: euInput.id, displayName: euInput.displayName, dominantColor: euInput.dominantColor };
+  }
   const contextualRecipe = getEffectiveNodeRecipe(recipe, node);
   const resources = handle.side === "input" ? contextualRecipe.inputs : contextualRecipe.outputs;
   const resource = resources.find(
@@ -12948,10 +12953,28 @@ function getResourceForHandle(
     return undefined;
   }
 
+  const euInput = euInputForHandle(recipe, node, handle);
+  if (euInput) {
+    return euInput;
+  }
   const contextualRecipe = getEffectiveNodeRecipe(recipe, node);
   const resources = handle.side === "input" ? contextualRecipe.inputs : contextualRecipe.outputs;
 
   return resources?.find((entry) => entry.kind === handle.kind && entry.id === handle.resourceId);
+}
+
+/**
+ * A machine's EU input row (`getNodeEuInput`): not a recipe slot but a port all the same, which a power network of
+ * the card's tier wires into. Undefined for every other handle, and for an EU handle of a tier the card no longer runs.
+ */
+function euInputForHandle(
+  recipe: Recipe,
+  node: FactoryNode,
+  handle: { side: "input" | "output"; kind: string; resourceId: string },
+): ResourceAmount | undefined {
+  if (handle.side !== "input" || handle.kind !== "power") return undefined;
+  const eu = getNodeEuInput(recipe, node);
+  return eu && eu.resource.id === handle.resourceId ? { ...eu.resource, amount: eu.euPerCraft } : undefined;
 }
 
 function getClientPosition(event: MouseEvent | TouchEvent) {

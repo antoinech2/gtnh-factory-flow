@@ -35,6 +35,7 @@ import {
 } from "@/lib/solver/machine-effects";
 import { getNodePowerReport, getNodeSteamReport, hasPowerReport } from "@/lib/solver/power-report";
 import { isMultiblockRecipe } from "@/lib/solver/power";
+import { getNodeEuInput } from "@/lib/solver/eu-input";
 import { prefersCuratedMachineMath } from "@/lib/solver/runtime-calculation";
 import { getFusionMachine } from "@/lib/machines/fusion";
 import { energyHatchTypeExistsAtTier } from "@/lib/machines/energy-hatches";
@@ -123,6 +124,20 @@ export interface CleanPowerView {
   name: string;
   stalled: boolean;
   title: string;
+  /** The EU input's handle (`input:power:eu%3Amv`): a power network of the card's tier wires here. */
+  handleId?: string;
+  /** The voltage its EU input takes. */
+  tier?: string;
+  /** A wire brings this row its EU. */
+  wired?: boolean;
+}
+
+/** The power row's note: which network supplies the card, or how to give it one. */
+export function powerNetworkNote(power: Pick<CleanPowerView, "handleId" | "tier" | "wired">): string {
+  if (!power.handleId || !power.tier) return "Not wired in plans.";
+  return power.wired
+    ? `Draws from an ${power.tier} power network.`
+    : `Not on a power network. Wire ${power.tier} EU here to supply it.`;
 }
 
 /**
@@ -1042,7 +1057,15 @@ export function useCleanCardModel(
   let power: CleanPowerView | undefined;
   if (powerReport) {
     const stalled = powerReport.state !== "ok";
+    const eu = getNodeEuInput(recipe, projectNode);
     power = {
+      handleId: eu?.handleId,
+      tier: eu?.tier,
+      wired:
+        eu !== undefined &&
+        liveProject.edges.some(
+          (edge) => edge.target === projectNode.id && edge.resourceKind === "power" && edge.resourceId === eu.resource.id,
+        ),
       number: stalled
         ? "TIER!"
         : formatPowerValue(

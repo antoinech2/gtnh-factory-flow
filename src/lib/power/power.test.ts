@@ -804,10 +804,18 @@ describe("power recipes", () => {
     const recipe = buildPowerRecipe("gas-turbine", { fuel: "Benzene" }, "recipe-eu");
     expect(recipe?.outputs[0]).toMatchObject({
       kind: "power",
-      id: "eu",
+      id: "eu:lv",
       amount: 32 * 20,
       byproduct: true,
     });
+  });
+
+  it("puts each generator's EU out at its own tier", () => {
+    // A singleblock: 1 A of the tier picked.
+    expect(buildPowerRecipe("gas-turbine", { tier: "HV" }, "r")?.outputs[0]?.id).toBe("eu:hv");
+    // The RTG: 1 A at the pellet's voltage, 60 V being an MV packet.
+    expect(buildPowerRecipe("rtg", { pellet: "pu238" }, "r")?.outputs[0]?.id).toBe("eu:mv");
+    expect(buildPowerRecipe("rtg", { pellet: "pu238" }, "r")?.power?.tier).toBe("MV");
   });
 
   it("resynthesizes recipes from node settings on load", () => {

@@ -1836,6 +1836,10 @@ export function buildRailPorts(
         return;
       }
       seen.add(key);
+      // A machine's EU input is its power row (the card draws it there, `CleanPowerView.handleId`), not a port row.
+      if (isInput && kind === "power") {
+        return;
+      }
 
       const slot = resources.find(
         (entry) => entry.kind === kind && entry.id === resourceId,

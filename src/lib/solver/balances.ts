@@ -160,6 +160,10 @@ export function calculateEffectiveBalances(
 
     const utilization = clampUtilization(node.utilization);
     for (const input of Object.values(node.inputs)) {
+      // A machine's EU, like a generator's below, stays out of the material books.
+      if (input.kind === "power") {
+        continue;
+      }
       addBalanceConsumption(
         balances,
         {

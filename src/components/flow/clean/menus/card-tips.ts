@@ -13,6 +13,7 @@ import { getMachineParallelMultiplier } from "@/lib/solver/machine-effects";
 import { PIN_RULE_LABEL } from "@/lib/model/pin-rule";
 import {
   formatSolvedMachines,
+  powerNetworkNote,
   type CleanCardView,
   type CleanChipView,
   type CleanFootView,
@@ -167,7 +168,7 @@ export function powerRowTip(view: CleanCardView, f: CardTipFacts): TipSpec {
         ],
         notes: [
           ...(power.stalled ? [{ text: power.title, tone: "red" as const }] : []),
-          { text: "Not wired in plans.", tone: "muted" as const },
+          { text: powerNetworkNote(power), tone: "muted" as const },
         ],
       };
 }

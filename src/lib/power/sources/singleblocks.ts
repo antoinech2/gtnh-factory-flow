@@ -10,6 +10,7 @@
  * A fuel too thin for its tank, or an item too small for its tier, derates
  * the output instead of running at V.
  */
+import { getVoltageTierForEuT } from "@/lib/model/tiers";
 import {
   findFuel,
   fuelOptions,
@@ -348,7 +349,7 @@ function buildSingleblock(spec: SingleblockSpec): PowerSourceDefinition {
     });
   }
 
-  return {
+  const source: PowerSourceDefinition = {
     id: spec.id,
     name: spec.name,
     group: "burners",
@@ -438,6 +439,15 @@ function buildSingleblock(spec: SingleblockSpec): PowerSourceDefinition {
       ]);
     },
   };
+  // A singleblock puts out 1 A of its own tier.
+  const compute = source.compute;
+  return {
+    ...source,
+    compute: (read) => ({
+      ...compute(read),
+      outputTier: getVoltageTierForEuT(tierPower(read.select("tier")).voltage),
+    }),
+  };
 }
 
 /**
@@ -492,6 +502,8 @@ const rtg: PowerSourceDefinition = {
     const pellet = RTG_PELLETS.find((row) => row.key === read.select("pellet")) ?? RTG_PELLETS[2];
     return {
       euPerTick: pellet.euPerTick,
+      // 1 A at the pellet's voltage: 60 EU/t is an MV packet.
+      outputTier: getVoltageTierForEuT(pellet.euPerTick),
       inputs: [items(pellet.name, 1 / pellet.seconds)],
       outputs: [],
       stats: [

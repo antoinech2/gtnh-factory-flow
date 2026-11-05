@@ -129,6 +129,7 @@ import type {
   TargetRate,
   ThroughputResult,
 } from "@/lib/model/types";
+import { getNodeEuInput } from "@/lib/solver/eu-input";
 import { nearestFreeSpot, type PlacementRect } from "@/components/flow/board-placement";
 import { getStorageRoles } from "@/lib/model/storage-role";
 import { edgeRatioWeight, setStorageRatioPercentage, equalizeStorageRatioPercentages } from "@/lib/model/storage-ratios";
@@ -5980,6 +5981,21 @@ function isFactoryEdgeStillValid(project: FactoryProject, edge: FactoryEdge): bo
   );
 }
 
+/**
+ * A machine's EU input (`getNodeEuInput`) when the wire carries that very EU: a port with no recipe slot, which a
+ * power network of the card's tier wires into. Undefined for anything else.
+ */
+function euInputMatching(
+  recipe: Recipe,
+  node: FactoryNode,
+  kind: ResourceKind,
+  id: string,
+): ResourceAmount | undefined {
+  if (kind !== "power") return undefined;
+  const eu = getNodeEuInput(recipe, node);
+  return eu && eu.resource.id === id ? { ...eu.resource, amount: eu.euPerCraft } : undefined;
+}
+
 function buildEdgeBetweenNodes(
   project: FactoryProject,
   sourceNodeId: string,
@@ -6038,13 +6054,14 @@ function buildEdgeBetweenNodes(
     const effectiveTargetRecipe = targetNode
       ? applyRecipeInputOverrides(targetRecipe, targetNode)
       : targetRecipe;
-    const matchedInput = effectiveTargetRecipe.inputs.find(
-      (input) =>
-        sourceStorage.kind === selectedResource.kind &&
-        sourceStorage.resourceId === selectedResource.id &&
-        resourceMatchesInput(sourceStorageResource(sourceStorage), input) &&
-        isRecipeInputConsumed(input),
-    );
+    const matchedInput =
+      effectiveTargetRecipe.inputs.find(
+        (input) =>
+          sourceStorage.kind === selectedResource.kind &&
+          sourceStorage.resourceId === selectedResource.id &&
+          resourceMatchesInput(sourceStorageResource(sourceStorage), input) &&
+          isRecipeInputConsumed(input),
+      ) ?? (targetNode ? euInputMatching(targetRecipe, targetNode, sourceStorage.kind, sourceStorage.resourceId) : undefined);
     if (!matchedInput) {
       return undefined;
     }
@@ -6089,7 +6106,9 @@ function buildEdgeBetweenNodes(
   }
 
   if (selectedResource?.sourceHandle && selectedResource.targetHandle) {
-    const matchedInput = getExplicitTargetInput(targetRecipe, targetNode, selectedResource);
+    const matchedInput =
+      getExplicitTargetInput(targetRecipe, targetNode, selectedResource) ??
+      euInputMatching(targetRecipe, targetNode, selectedResource.kind, selectedResource.id);
     if (!matchedInput) {
       return undefined;
     }

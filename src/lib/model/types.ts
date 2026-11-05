@@ -398,6 +398,8 @@ export interface Recipe {
   power?: {
     sourceId: string;
     euPerTick: number;
+    /** The voltage its EU output carries (`power:eu:<tier>`). Rebuilt on load with the rest of the recipe. */
+    tier?: Exclude<MachineTier, "DEMO">;
     stats: Array<{ label: string; value: string }>;
     warnings?: string[];
   };
