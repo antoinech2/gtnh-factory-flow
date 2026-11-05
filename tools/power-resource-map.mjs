@@ -89,9 +89,6 @@ const ID_OVERRIDES = {
   "Block of Cactus Coke": { kind: "item", id: "miscutils:blockcactuscoke" },
   "Block of Sugar Coke": { kind: "item", id: "miscutils:blocksugarcoke" },
   "Ench. Golden Apple": { kind: "item", id: "minecraft:golden_apple@1" },
-  // Chisel's planks share the vanilla name.
-  "Oak Planks": { kind: "item", id: "minecraft:planks" },
-  "Oak Log": { kind: "item", id: "minecraft:log" },
   // The RTG pellets' display names carry private-use glyph prefixes that
   // defeat the exact-name match; pin them by id.
   "Pu Pellet": { kind: "item", id: "miscutils:mu-metaitem.01@32041" },
@@ -256,10 +253,43 @@ const AUX_NAMES = [
   ["Fire Water", "fluid"],
   ["Biofuel", "fluid"],
   ["Blazing Pyrotheum", "fluid"],
-  // The wood its solid firebox burns, as a furnace does.
-  ["Oak Planks", "item"],
-  ["Oak Log", "item"],
+  // The wood its solid firebox burns, as a furnace does (OREDICT_SLOTS).
+  ["Wooden Planks", "item"],
+  ["Wood Logs", "item"],
 ];
+
+/**
+ * Names that stand for a whole ore dictionary group, as a crafting slot does ("Any wooden planks"): the group's
+ * members ride along as alternatives, so any of them wires in. Read from a crafting recipe that names the group.
+ */
+const OREDICT_SLOTS = { "Wooden Planks": "plankWood", "Wood Logs": "logWood" };
+
+async function oredictSlot(group) {
+  const id = `oredict:${group}`;
+  const url = `${base}/api/datasets/${version}/recipes?resourceKind=item&resourceId=${encodeURIComponent(id)}&mode=uses&recipeMap=${encodeURIComponent("Shaped Crafting")}&limit=50`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`${url} -> ${response.status}`);
+  }
+  for (const recipe of (await response.json()).recipes ?? []) {
+    const slot = recipe.inputs?.find((entry) => entry.id === id);
+    if (slot?.alternatives?.length) {
+      return {
+        kind: slot.kind,
+        id,
+        displayName: slot.displayName,
+        alternatives: slot.alternatives.map(({ kind, id, displayName, iconPath, dominantColor }) => ({
+          kind,
+          id,
+          displayName,
+          iconPath,
+          dominantColor,
+        })),
+      };
+    }
+  }
+  return undefined;
+}
 
 /**
  * Plasma exhausts follow the game's registry fallback: the de-powered
@@ -367,6 +397,12 @@ await Promise.all(
       const [name, kind] = queue.shift();
       const target = ALIASES[name] ?? name;
       try {
+        if (OREDICT_SLOTS[name]) {
+          const slot = await oredictSlot(OREDICT_SLOTS[name]);
+          if (slot) map[name] = slot;
+          else unresolved.push(name);
+          continue;
+        }
         const override = ID_OVERRIDES[name];
         const results = await search(override ? name.replace("Ench. ", "").replace("Block of ", "") : target);
         let found = override

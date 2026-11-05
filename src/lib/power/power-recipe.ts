@@ -50,6 +50,7 @@ function flowToSlot(flow: PowerFlowLine): (RecipeInput & RecipeOutput) | undefin
     displayName: resource.displayName,
     iconPath: resource.iconPath,
     dominantColor: resource.dominantColor,
+    ...(resource.alternatives ? { alternatives: resource.alternatives } : {}),
   };
 }
 

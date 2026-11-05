@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { resourceMatchesInput } from "@/lib/model/resources";
 import { resolvePowerResource } from "../planner-data";
+import { buildPowerRecipe } from "../power-recipe";
 import { getPowerSource } from "../registry";
 import { buildPowerSettingsReader } from "../types";
 import { boilerWarmUpTicks, waterTankFill } from "./railcraft";
@@ -96,11 +98,18 @@ describe("Railcraft Boiler (SteamBoiler at full heat)", () => {
     expect(flow(model, "Blaze Rod")).toBeCloseTo(0.1, 10);
   });
 
-  it("burns planks and logs at the furnace's 300", () => {
-    for (const wood of ["Oak Planks", "Oak Log"]) {
+  it("burns any planks or logs at the furnace's 300", () => {
+    for (const wood of ["Wooden Planks", "Wood Logs"]) {
       const model = compute("railcraft-boiler", { size: "2x2x2", fuel: wood });
       expect(flow(model, wood), wood).toBeCloseTo(100 / 300, 10);
     }
+    // The fuel slot is the ore dictionary group, as a crafting slot is: any wood wires in.
+    const slot = buildPowerRecipe("railcraft-boiler", { fuel: "Wooden Planks" }, "boiler")!.inputs[0]!;
+    expect(slot.id).toBe("oredict:plankWood");
+    expect(resourceMatchesInput({ kind: "item", id: "minecraft:planks@1" }, slot)).toBe(true);
+    expect(resourceMatchesInput({ kind: "item", id: "minecraft:log@1" }, slot)).toBe(false);
+    const logs = buildPowerRecipe("railcraft-boiler", { fuel: "Wood Logs" }, "boiler")!.inputs[0]!;
+    expect(resourceMatchesInput({ kind: "item", id: "minecraft:log@1" }, logs)).toBe(true);
   });
 
   it("states warm-up and pollution", () => {

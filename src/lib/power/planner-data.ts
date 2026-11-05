@@ -6,6 +6,7 @@
 import rawData from "./data/power-planner-data.json";
 import rawResourceMap from "./data/resource-map.json";
 import rawMachineIcons from "./data/machine-icons.json";
+import type { ResourceAlternative } from "@/lib/model/types";
 
 export interface PowerFuelEntry {
   name: string;
@@ -114,6 +115,8 @@ export interface PowerResourceRef {
   displayName: string;
   iconPath?: string;
   dominantColor?: string;
+  /** An ore dictionary group's members (`oredict:plankWood`): any of them fills the slot. */
+  alternatives?: ResourceAlternative[];
 }
 
 const resourceMap = (rawResourceMap as { resources: Record<string, PowerResourceRef> }).resources;
