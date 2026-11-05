@@ -64,6 +64,15 @@ describe("power network wiring", () => {
     ]);
   });
 
+  it("keeps a machine's EU wire through its other edits, and drops it when the machine's tier changes", () => {
+    useFactoryStore.getState().connectNodes("grid", "press", LV_EU);
+    useFactoryStore.getState().updateNode("press", { machineCount: 3 });
+    expect(useFactoryStore.getState().project.edges).toHaveLength(1);
+    // At MV the press takes MV EU: the LV wire has no input left to land on.
+    useFactoryStore.getState().updateNode("press", { overclockTier: "MV" });
+    expect(useFactoryStore.getState().project.edges).toEqual([]);
+  });
+
   it("refuses LV EU into a machine running at MV", () => {
     useFactoryStore.getState().setProject(plan("MV"));
     useFactoryStore.getState().connectNodes("grid", "press", LV_EU);

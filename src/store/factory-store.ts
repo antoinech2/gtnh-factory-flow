@@ -5934,6 +5934,22 @@ function isFactoryEdgeStillValid(project: FactoryProject, edge: FactoryEdge): bo
     );
   }
 
+  // A machine's EU input has no recipe slot (`getNodeEuInput`): a wire of the EU it runs on stays while its far end
+  // still holds or makes that EU. One of another tier (the card's tier changed) finds no input below and goes.
+  if (targetNode && targetRecipe && euInputMatching(targetRecipe, targetNode, edge.resourceKind, edge.resourceId)) {
+    const wired = { kind: edge.resourceKind, id: edge.resourceId };
+    if (sourceStorage) {
+      return sourceStorage.kind === wired.kind && sourceStorage.resourceId === wired.id;
+    }
+    return Boolean(
+      sourceNode &&
+        sourceRecipe &&
+        applyRecipeInputOverrides(sourceRecipe, sourceNode).outputs.some((output) =>
+          resourceMatchesInput(wired, output),
+        ),
+    );
+  }
+
   if (sourceStorage && targetRecipe) {
     const effectiveTargetRecipe = targetNode
       ? applyRecipeInputOverrides(targetRecipe, targetNode)

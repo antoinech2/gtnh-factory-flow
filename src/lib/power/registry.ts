@@ -9,13 +9,14 @@ import { railcraftOtherSources } from "./sources/railcraft";
 import { singleblockSources } from "./sources/singleblocks";
 import { sofcSources } from "./sources/sofc";
 import { steamMakerSources } from "./sources/steam-makers";
+import { transformerSources } from "./sources/transformer";
 import { turbineSources } from "./sources/turbines";
 import type { PowerGroupId, PowerSourceDefinition } from "./types";
 
 export const POWER_GROUPS: Array<{ id: PowerGroupId; name: string; blurb: string }> = [
   // The planning cards: the custom rate card, the fluid tank and the crop farm are special models
   // (src/lib/model), listed by the picker itself; the Railcraft Water Tank is a source.
-  { id: "other", name: "Other", blurb: "Planning cards, and water from the sky." },
+  { id: "other", name: "Other", blurb: "Planning cards, transformers, and water from the sky." },
   { id: "burners", name: "Generators", blurb: "Singleblocks: one amp of their tier from fuel." },
   { id: "engines", name: "Engines", blurb: "The big fuel burners: engines and fuel cells." },
   { id: "steam", name: "Boilers and exchangers", blurb: "Everything that makes steam." },
@@ -35,6 +36,7 @@ export const POWER_SOURCES: PowerSourceDefinition[] = [
   ...passiveSources,
   ...endgameSources,
   ...railcraftOtherSources,
+  ...transformerSources,
 ];
 
 const byId = new Map(POWER_SOURCES.map((source) => [source.id, source]));

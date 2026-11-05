@@ -22,6 +22,15 @@ export function euTierOf(resourceId: string): VoltageTier | undefined {
   return GT_VOLTAGE_TIERS.find((entry) => entry.tier.toLowerCase() === name)?.tier;
 }
 
+/**
+ * GT's output loss (BaseMetaTileEntity): every EU-producing block, generators and transformers alike, draws
+ * 2^max(0, tier - 1) EU more than each packet of its output tier carries (ULV and LV: 1, MV: 2, HV: 4).
+ */
+export function euPacketLoss(tier: VoltageTier): number {
+  const index = GT_VOLTAGE_TIERS.findIndex((entry) => entry.tier === tier);
+  return 2 ** Math.max(0, index - 1);
+}
+
 /** A port's or drawer's handle for a tier's EU (`input:power:eu%3Alv`), as the board names every handle. */
 export function euHandleId(side: "input" | "output", tier: VoltageTier): string {
   return `${side}:power:${encodeURIComponent(euResourceId(tier))}`;

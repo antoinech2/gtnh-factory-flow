@@ -130,11 +130,14 @@ export interface CleanPowerView {
   tier?: string;
   /** A wire brings this row its EU. */
   wired?: boolean;
+  /** EU/t its network cannot give it, which the plan forces in (an Exactly generator count too small). */
+  short?: string;
 }
 
 /** The power row's note: which network supplies the card, or how to give it one. */
-export function powerNetworkNote(power: Pick<CleanPowerView, "handleId" | "tier" | "wired">): string {
+export function powerNetworkNote(power: Pick<CleanPowerView, "handleId" | "tier" | "wired" | "short">): string {
   if (!power.handleId || !power.tier) return "Not wired in plans.";
+  if (power.short) return `Not enough EU on its ${power.tier} power network: ${power.short} EU/t short.`;
   return power.wired
     ? `Draws from an ${power.tier} power network.`
     : `Not on a power network. Wire ${power.tier} EU here to supply it.`;
@@ -1066,6 +1069,10 @@ export function useCleanCardModel(
         liveProject.edges.some(
           (edge) => edge.target === projectNode.id && edge.resourceKind === "power" && edge.resourceId === eu.resource.id,
         ),
+      short: (() => {
+        const forced = eu ? (forcedAt.get(makePortKey(projectNode.id, "i", eu.handleId)) ?? 0) : 0;
+        return forced > 0 ? formatPowerValue(forced / 20) : undefined;
+      })(),
       number: stalled
         ? "TIER!"
         : formatPowerValue(

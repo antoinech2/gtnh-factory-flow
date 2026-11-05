@@ -92,13 +92,19 @@ export function buildPowerRecipe(
   // The EU output port, FIRST on the rail (a generator's product is power), as
   // EU of the tier it leaves at. Marked byproduct so primaryOutput never crowns
   // it over a material output, and per second (x20) like every flow.
-  const tier = powerOutputTier(model);
-  if (model.euPerTick > 0) {
+  const euOutput =
+    model.euOutput ?? (model.euPerTick > 0 ? { tier: powerOutputTier(model), perTick: model.euPerTick } : undefined);
+  const tier = euOutput?.tier ?? powerOutputTier(model);
+  if (euOutput) {
     outputs.unshift({
-      ...euResource(tier),
-      amount: model.euPerTick * 20,
+      ...euResource(euOutput.tier),
+      amount: euOutput.perTick * 20,
       byproduct: true,
     });
+  }
+  // A transformer's EU in, first on its input rail.
+  if (model.euInput) {
+    inputs.unshift({ ...euResource(model.euInput.tier), amount: model.euInput.perTick * 20 });
   }
 
   return {

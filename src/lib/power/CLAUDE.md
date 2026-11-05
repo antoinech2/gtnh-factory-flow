@@ -29,5 +29,8 @@
 - Exam: `power.test.ts`, `rotor-data.test.ts` and each `sources/*.test.ts` (Java values); power networks:
   `eu-wires.test.ts`, `src/lib/solver/power-network.test.ts`, `src/store/power-network-wiring.test.ts`.
 - Railcraft's Water Tank and boiler (`sources/railcraft.ts`) follow Railcraft's own source (GTNH fork, tag
-  9.17.26), not the workbook; the mod pins the same values. The tank is the one source in the
-  "other" group, the picker's Other column after its planning cards.
+  9.17.26), not the workbook; the mod pins the same values. The tank and the transformer
+  (`sources/transformer.ts`) are the sources in the "other" group, the picker's Other column after its planning cards.
+- A transformer is a power card with an EU input (`PowerModel.euInput`) and an explicit EU output (`euOutput`): one
+  block moves the high side's voltage times 1, 4 or 16 A, less the output tier's packet loss (`euPacketLoss`). Its
+  `euPerTick` is that loss, negative, so the machine list counts it as a draw and searches for power never list it.

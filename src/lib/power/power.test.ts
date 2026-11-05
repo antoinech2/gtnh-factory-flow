@@ -810,6 +810,24 @@ describe("power recipes", () => {
     });
   });
 
+  it("a transformer takes one tier's EU and gives the next one's, less the output loss", () => {
+    const at = (settings: Record<string, string>) => buildPowerRecipe("transformer", settings, "t")!;
+    // HV to MV, step down: 1 A of HV (512 EU/t) in, MV packets of 128 at 130 EU each out.
+    const down = at({ tier: "HV", mode: "down", type: "normal" });
+    expect(down.inputs[0]).toMatchObject({ kind: "power", id: "eu:hv", amount: 512 * 20 });
+    expect(down.outputs[0]).toMatchObject({ kind: "power", id: "eu:mv" });
+    expect(down.outputs[0]!.amount).toBeCloseTo(512 * 20 * (128 / 130), 9);
+    // Step up: 4 A of MV in, HV packets of 512 at 516 EU out.
+    const up = at({ tier: "HV", mode: "up", type: "normal" });
+    expect(up.inputs[0]).toMatchObject({ id: "eu:mv", amount: 512 * 20 });
+    expect(up.outputs[0]!.amount).toBeCloseTo(512 * 20 * (512 / 516), 9);
+    // Hi-Amp and Power: 4 and 16 A of the high side a block.
+    expect(at({ tier: "HV", type: "hi-amp" }).inputs[0]!.amount).toBe(4 * 512 * 20);
+    expect(at({ tier: "HV", type: "power" }).inputs[0]!.amount).toBe(16 * 512 * 20);
+    // It makes no power of its own: its net is the loss, so searches for power never list it.
+    expect(down.power!.euPerTick).toBeLessThan(0);
+  });
+
   it("puts each generator's EU out at its own tier", () => {
     // A singleblock: 1 A of the tier picked.
     expect(buildPowerRecipe("gas-turbine", { tier: "HV" }, "r")?.outputs[0]?.id).toBe("eu:hv");

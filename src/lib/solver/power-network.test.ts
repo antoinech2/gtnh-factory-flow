@@ -99,6 +99,60 @@ describe("power networks", () => {
     expect(result.plan?.shortfalls?.[0]).toMatchObject({ drawerId: "plates", limitingCards: ["gen"] });
   });
 
+  it("a transformer joins an HV network to an MV one and is sized like a machine", () => {
+    // HV turbine -> HV drawer -> HV-to-MV transformer -> MV drawer -> 4 MV presses at 100 EU/t (8000 EU/s).
+    const hvTurbine = buildPowerRecipe("gas-turbine", { tier: "HV", fuel: "Benzene" }, "hv-turbine")!;
+    const step = buildPowerRecipe("transformer", { tier: "HV", mode: "down", type: "normal" }, "step")!;
+    const mvPress = { ...recipe("mv-press", [["ore", 1]], [["plate", 1]]), eut: 100, minimumTier: "MV" };
+    const eu = (id: string, source: string, target: string, tier: "HV" | "MV"): FactoryEdge => ({
+      id,
+      source,
+      target,
+      sourceHandle: euHandleId("output", tier),
+      targetHandle: euHandleId("input", tier),
+      resourceKind: "power",
+      resourceId: `eu:${tier.toLowerCase()}`,
+    });
+    const p = project({
+      recipes: [hvTurbine, step, mvPress],
+      nodes: [node("gen", "hv-turbine"), node("step", "step"), node("press", "mv-press", { overclockTier: "MV" })],
+      storages: [
+        { ...drawer("fuel", benzene.id), kind: "fluid" } as FactoryStorage,
+        drawer("ore-in", "ore"),
+        drawer("plates", "plate", { targetPerSecond: 4, targetMode: "at-least" }),
+        { id: "hv", kind: "power", resourceId: "eu:hv", displayName: "HV EU", position: { x: 0, y: 0 } },
+        { id: "mv", kind: "power", resourceId: "eu:mv", displayName: "MV EU", position: { x: 0, y: 0 } },
+      ],
+      edges: [
+        {
+          id: "w-fuel",
+          source: "fuel",
+          target: "gen",
+          targetHandle: `input:fluid:${encodeURIComponent(benzene.id)}`,
+          resourceKind: "fluid",
+          resourceId: benzene.id,
+        },
+        wire("w-ore", "ore-in", "press", "ore", {}, { fromDrawer: true }),
+        wire("w-plate", "press", "plates", "plate", {}, { toDrawer: true }),
+        eu("w-gen", "gen", "hv", "HV"),
+        eu("w-hv", "hv", "step", "HV"),
+        eu("w-step", "step", "mv", "MV"),
+        eu("w-mv", "mv", "press", "MV"),
+      ],
+    });
+    const { result } = solve(p);
+    const mvNeeded = 4 * 100 * 20;
+    // One block moves 512 EU/t of HV; each 128 EU MV packet costs 130.
+    const perBlock = 512 * 20 * (128 / 130);
+    expect(result.nodes.press?.theoreticalMachinesRequired).toBeCloseTo(4, 9);
+    expect(result.nodes.step?.theoreticalMachinesRequired).toBeCloseTo(mvNeeded / perBlock, 9);
+    expect(result.edges["w-mv"]?.transferredPerSecond).toBeCloseTo(mvNeeded, 6);
+    expect(result.edges["w-hv"]?.transferredPerSecond).toBeCloseTo((mvNeeded * 130) / 128, 6);
+    const hvPerTurbine = hvTurbine.outputs.find((slot) => slot.kind === "power")!.amount;
+    expect(result.nodes.gen?.theoreticalMachinesRequired).toBeCloseTo((mvNeeded * 130) / 128 / hvPerTurbine, 9);
+    expect(result.plan?.forced).toEqual([]);
+  });
+
   it("an Exactly generator count too small shows the EU the network lacks as a Forced in row", () => {
     // The solver's doctrine for any resource under a fixed count; the board has to read it as a shortage.
     const { result } = solve(networkPlan({ wired: true, turbine: { solvePin: 2, solvePinExact: true } }));

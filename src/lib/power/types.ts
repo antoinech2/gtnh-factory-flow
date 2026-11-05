@@ -91,6 +91,10 @@ export interface PowerModel {
    * `euPerTick` (a multiblock until it has dynamo settings).
    */
   outputTier?: VoltageTier;
+  /** EU it takes, a transformer's high or low side: an EU input slot of that tier. */
+  euInput?: { tier: VoltageTier; perTick: number };
+  /** EU it gives when that is not `euPerTick` (a transformer, whose net is its loss). */
+  euOutput?: { tier: VoltageTier; perTick: number };
   inputs: PowerFlowLine[];
   outputs: PowerFlowLine[];
   stats: PowerStatLine[];

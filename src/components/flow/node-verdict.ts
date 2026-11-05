@@ -1836,14 +1836,15 @@ export function buildRailPorts(
         return;
       }
       seen.add(key);
-      // A machine's EU input is its power row (the card draws it there, `CleanPowerView.handleId`), not a port row.
-      if (isInput && kind === "power") {
-        return;
-      }
 
       const slot = resources.find(
         (entry) => entry.kind === kind && entry.id === resourceId,
       );
+      // A machine's EU input is its power row (the card draws it there, `CleanPowerView.handleId`), not a port row.
+      // A transformer's EU input is a recipe slot like any other, and keeps its row.
+      if (isInput && kind === "power" && !slot) {
+        return;
+      }
       // The first member supplies stable color/art for non-animated contexts.
       // Keep the group identity and label; ResourceIcon cycles only its artwork.
       const face = slot && isOreDictionaryResource(slot)

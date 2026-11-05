@@ -1069,7 +1069,7 @@ export function CleanCard({ view, actions, context, recipe, node }: CleanCardPro
             className="cc-row"
             data-power=""
             data-side="input"
-            data-stalled={view.power.stalled ? "" : undefined}
+            data-stalled={view.power.stalled || view.power.short ? "" : undefined}
             data-wired={view.power.handleId ? (view.power.wired ? "true" : "false") : undefined}
             {...(view.power.handleId
               ? {

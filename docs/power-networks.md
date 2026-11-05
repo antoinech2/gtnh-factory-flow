@@ -1,11 +1,12 @@
 # Power networks
 
-Status: steps 1 to 3 built (tiered EU, EU input rows, the adapter), with wiring on the board and the overview.
-Website only for now; the mod (GTNH Planner) does not read these plans yet (see "The mod").
+Status: built: tiered EU, EU input rows, the adapter, wiring on the board, the overview, transformers (Normal,
+Hi-Amp, Power), the drawer's tier colour and amps (in its tip), the shortage note on a machine's Power row, and a
+machine's EU wire coming off when its tier changes. Website only for now; the mod (GTNH Planner) does not read these
+plans yet (see "The mod").
 
-Not built yet: transformers, dynamo settings, the drawer's tier colour and amps, "Connect selection", hiding EU
-wires, EU rows on shared-machine sections, and dropping a machine's EU wire when its tier changes (until then the
-wire stays drawn but the solve ignores it).
+Not built yet: dynamo settings, the Active Transformer, "Connect selection", hiding EU wires, EU rows on
+shared-machine sections, and the overview's per-network lines.
 
 A power network is an EU drawer of one voltage tier. Generators of that tier feed it, machines of that tier draw from
 it, and transformers join two tiers. A plan can hold any number of networks side by side, as it holds any number of

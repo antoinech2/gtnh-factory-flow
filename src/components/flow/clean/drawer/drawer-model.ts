@@ -3,6 +3,8 @@ import { formatCompact, formatPowerValue } from "@/lib/model";
 import type { StorageRole } from "@/lib/model/storage-role";
 import { storageTargetMode, type TargetMode } from "@/lib/model/storage-target";
 import { rateMultiplierForKind, rateSuffixForKind } from "@/lib/model/rate-unit";
+import { getVoltageTierMaxEuT } from "@/lib/model/tiers";
+import { euTierOf } from "@/lib/power/eu";
 import { RULE_MARK, RULE_NAME, trimFlow } from "../../rate-rule";
 import type { DrawerKind } from "../tokens";
 import { mcTextWidth, measureRowFigure, measureRowName } from "../text-measure";
@@ -245,11 +247,18 @@ export function buildDrawerView(input: DrawerViewInput): CleanDrawerView {
       tone: "red",
     });
   }
+  // A power network's voltage, and what passes in amps of it (`docs/power-networks.md`).
+  const euTier = resourceKind === "power" ? euTierOf(storage.resourceId) : undefined;
   const bodyTip: TipSpec = {
     id: `${storage.id}|body`,
     title: label,
-    sub: KIND_NAME[kind],
-    rows: [{ label: flowWord, value: `${number} ${unitLabel}` }],
+    sub: euTier ? `${KIND_NAME[kind]}, ${euTier} power network` : KIND_NAME[kind],
+    rows: [
+      { label: flowWord, value: `${number} ${unitLabel}` },
+      ...(euTier
+        ? [{ label: "Amps", value: `${formatCompact(net / 20 / getVoltageTierMaxEuT(euTier))} A ${euTier}` }]
+        : []),
+    ],
     notes: bodyNotes,
     actions: [
       { input: "drag", label: "Wire to a card" },

@@ -5,6 +5,8 @@ import { fluidSwatchStyle } from "../fluid-swatch";
 import type { FactoryStorage, Recipe, ResourceAmount } from "@/lib/model/types";
 import { getFallbackFluidColor, ResourceIcon } from "@/components/nei/ResourceIcon";
 import { useFactoryStore } from "@/store/factory-store";
+import { euTierOf } from "@/lib/power/eu";
+import { GT_TIER_COLORS } from "../../tier-colors";
 
 /**
  * The drawer's picture, drawn as the card draws its ports (`CleanCard` PortIcon): a fluid is the mod's flat square in
@@ -47,7 +49,18 @@ export function DrawerIcon({
     hasArt(storage) ? undefined : recipeArt(state.project.recipes, storage.kind, storage.resourceId),
   );
   const art = { ...storage, ...(borrowed ?? {}) };
-  if (storage.kind === "power") return <span className="cd-icon cd-eu" aria-hidden />;
+  if (storage.kind === "power") {
+    // A power network wears its voltage's GT colour round the bolt.
+    const tier = euTierOf(storage.resourceId);
+    return (
+      <span
+        className="cd-icon cd-eu"
+        data-tier={tier}
+        style={tier ? { boxShadow: `inset 0 0 0 2px ${GT_TIER_COLORS[tier].background}` } : undefined}
+        aria-hidden
+      />
+    );
+  }
   if (storage.kind === "fluid") {
     const color =
       art.dominantColor ?? art.iconAtlas?.dominantColor ?? getFallbackFluidColor(storage.resourceId);

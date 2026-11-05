@@ -168,7 +168,7 @@ export function powerRowTip(view: CleanCardView, f: CardTipFacts): TipSpec {
         ],
         notes: [
           ...(power.stalled ? [{ text: power.title, tone: "red" as const }] : []),
-          { text: powerNetworkNote(power), tone: "muted" as const },
+          { text: powerNetworkNote(power), tone: power.short ? ("red" as const) : ("muted" as const) },
         ],
       };
 }

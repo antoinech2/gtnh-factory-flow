@@ -161,7 +161,7 @@ export function powerTip(view: CleanCardView): TipSpec {
     rows: [{ label: steam ? "Steam for this card" : "Demand for this card", value: power.stalled ? power.number : rate(power.number, power.unit) }],
     notes: [
       ...(power.stalled ? [{ text: power.title, tone: "red" as const }] : []),
-      { text: steam ? "Not wired in plans." : powerNetworkNote(power), tone: "muted" as const },
+      { text: steam ? "Not wired in plans." : powerNetworkNote(power), tone: power.short ? ("red" as const) : ("muted" as const) },
     ],
   };
 }
