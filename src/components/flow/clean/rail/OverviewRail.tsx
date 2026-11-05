@@ -33,6 +33,7 @@ import {
   rateUnitSuffix,
 } from "@/lib/model/rate-unit";
 import { getPowerMachineIcon } from "@/lib/power/planner-data";
+import { powerStallWord } from "@/lib/solver/power-report";
 import { useFactoryStore, useRateDisplayUnits } from "@/store/factory-store";
 import { useWorkspaceView, writeWorkspaceView } from "@/lib/workspace-view";
 import { formatAmountWithSuffix, RULE_MARK, RULE_NAME, RULE_STEPS } from "../../rate-rule";
@@ -1178,7 +1179,7 @@ const MachineRow = memo(function MachineRow({
   const made = peak ? entry.madeEuT : entry.avgMadeEuT;
   const used = peak ? entry.euT : entry.avgEuT;
   const steam = peak ? entry.steamLs : entry.avgSteamLs;
-  const tooLow = entry.state === "under-powered";
+  const tooLow = entry.state !== "ok";
   // What it draws, grey beside the tier: the unit is dropped when there is no room for it (the mod's rule).
   const tierLabel = entry.tier
     ? `${entry.tier}${entry.isMultiblock && (entry.amps ?? 0) > 1 ? ` ${entry.amps}A` : ""}`
@@ -1197,7 +1198,7 @@ const MachineRow = memo(function MachineRow({
   const withUnit = (number: string, unit: string) =>
     measureClean(`${number} ${unit}`, RAIL_FONT) <= room ? `${number} ${unit}` : number;
   let eu = "";
-  if (tooLow) eu = "TIER!";
+  if (tooLow) eu = powerStallWord(entry);
   else if (made !== undefined && made > 0)
     eu = withUnit(`+${formatCompact(powerDisplayFromEuT(made))}`, powerDisplaySuffix());
   else if (steam !== undefined) eu = withUnit(formatCompact(steam), "L/s");

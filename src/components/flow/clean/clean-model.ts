@@ -33,7 +33,13 @@ import {
   applyMachineOutputMultipliers,
   getMachineParallelMultiplier,
 } from "@/lib/solver/machine-effects";
-import { getNodePowerReport, getNodeSteamReport, hasPowerReport } from "@/lib/solver/power-report";
+import {
+  describePowerStall,
+  getNodePowerReport,
+  getNodeSteamReport,
+  hasPowerReport,
+  powerStallWord,
+} from "@/lib/solver/power-report";
 import { isMultiblockRecipe } from "@/lib/solver/power";
 import { getNodeEuInput } from "@/lib/solver/eu-input";
 import { prefersCuratedMachineMath } from "@/lib/solver/runtime-calculation";
@@ -1074,7 +1080,7 @@ export function useCleanCardModel(
         return forced > 0 ? formatPowerValue(forced / 20) : undefined;
       })(),
       number: stalled
-        ? "TIER!"
+        ? powerStallWord(powerReport)
         : formatPowerValue(
             powerDisplayFromEuT(powerReport.drawEuT * machines * drawScale, powerReport.tier),
           ),
@@ -1082,7 +1088,7 @@ export function useCleanCardModel(
       name: "Power",
       stalled,
       title: stalled
-        ? (powerReport.recipeGateReason ?? "This machine's tier is too low to run the recipe.")
+        ? (describePowerStall(powerReport) ?? "This machine's tier is too low to run the recipe.")
         : `${powerReport.tier} machine, ${formatCompact(powerReport.amps)}A`,
     };
   } else if (steamReport) {

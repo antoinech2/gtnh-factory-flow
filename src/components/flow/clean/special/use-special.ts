@@ -52,7 +52,13 @@ import {
 } from "@/lib/model/shared-machine";
 import { applyMachineOutputMultipliers } from "@/lib/solver/machine-effects";
 import { getOverclockedRecipeStats } from "@/lib/solver/overclock";
-import { getNodePowerReport, getNodeSteamReport, hasPowerReport } from "@/lib/solver/power-report";
+import {
+  describePowerStall,
+  getNodePowerReport,
+  getNodeSteamReport,
+  hasPowerReport,
+  powerStallWord,
+} from "@/lib/solver/power-report";
 import { parsePortKey } from "@/lib/solver/plan/port-key";
 import { getPowerSource } from "@/lib/power/registry";
 import { getPowerStructureArt } from "@/lib/power/structure-art";
@@ -284,9 +290,8 @@ export function useSharedCardModel(data: RecipeNodeData, selected: boolean): Spe
     averageDraw ? (usageBySection[i] ?? 0) : (usageBySection[i] ?? 0) > 0 ? 1 : 0;
   const drawOf = (i: number) => parts[i]?.powerReport?.drawEuT ?? 0;
   const euT = machinesBySection.reduce((sum, n, i) => sum + drawOf(i) * n * scaleOf(i), 0);
-  const stalled = parts.some(
-    (part) => part.powerReport !== undefined && part.powerReport.state !== "ok",
-  );
+  const stall = parts.find((part) => part.powerReport !== undefined && part.powerReport.state !== "ok")?.powerReport;
+  const stalled = stall !== undefined;
   const litresOf = (i: number) =>
     parts[i]?.steamReport ? parts[i]!.steamReport!.drawSteamPerTick * 20 : 0;
   const litres = machinesBySection.reduce((sum, n, i) => sum + litresOf(i) * n * scaleOf(i), 0);
@@ -299,12 +304,12 @@ export function useSharedCardModel(data: RecipeNodeData, selected: boolean): Spe
   const ownTier = sectionTiers.size === 1 ? [...sectionTiers][0] : undefined;
   const power: SpecialView["power"] = anyEu
     ? {
-        number: stalled ? "TIER!" : formatPowerValue(powerDisplayFromEuT(euT, ownTier)),
+        number: stall ? powerStallWord(stall) : formatPowerValue(powerDisplayFromEuT(euT, ownTier)),
         unit: stalled ? "" : powerDisplaySuffix(ownTier),
         name: "Power",
         stalled,
-        title: stalled
-          ? "A recipe on this machine is above its tier."
+        title: stall
+          ? (describePowerStall(stall) ?? "A recipe on this machine is above its tier.")
           : "What the card's machines draw, every recipe at the machines it needs.",
       }
     : anySteam

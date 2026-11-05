@@ -11,6 +11,7 @@ import {
 import { getEnergyHatchType } from "@/lib/machines/energy-hatches";
 import { getMachineBehaviour, STEAM_PRESSURE } from "@/lib/machines/machine-table";
 import {
+  GT_VOLTAGE_TIERS,
   getRecipeMinimumVoltageTier,
   getVoltageTierForEuT,
   getVoltageTierIndex,
@@ -62,6 +63,8 @@ export interface NodePowerReport {
   /** The tier the user picked (or the recipe's minimum by default). */
   tier: VoltageTier;
   minimumTier: VoltageTier;
+  /** The lowest tier that runs the recipe: on a multiblock, the hatch tier its amps can make up from. */
+  lowestTier: VoltageTier;
   /** Hatch count on a multiblock; 1 and meaningless on a singleblock. */
   hatches: number;
   /** The exotic hatch family's item name; undefined on plain energy hatches. */
@@ -152,6 +155,7 @@ export function getNodePowerReport(recipe: Recipe, node: PowerReportNode): NodeP
     recipeGateReason,
     tier,
     minimumTier,
+    lowestTier: isMultiblock ? lowestHatchTier(effectiveRecipe, minimumTier) : minimumTier,
     hatches,
     hatchTypeLabel: isMultiblock && !typedBudget && hatchType.exotic ? hatchType.label : undefined,
     hatchChip: isMultiblock && !typedBudget && hatchType.exotic ? hatchType.chip : undefined,
@@ -168,6 +172,18 @@ export function getNodePowerReport(recipe: Recipe, node: PowerReportNode): NodeP
     perfectEuFactor: stats.perfectEuFactor,
     usage: Number.isFinite(poolEuT) && poolEuT > 0 ? drawEuT / poolEuT : 0,
   };
+}
+
+/**
+ * `OverclockCalculator.getAllowedTierSkip`: amps make up the tiers a multiblock may skip below its draw's own tier
+ * (two MV hatches, 4A, run a 480 EU/t HV recipe), never a structural minimum above the draw.
+ */
+function lowestHatchTier(effectiveRecipe: Recipe, minimumTier: VoltageTier): VoltageTier {
+  const powerTier = getVoltageTierForEuT(Math.abs(effectiveRecipe.eut));
+  const declared = getVoltageTierIndex(resolveVoltageTier(effectiveRecipe.minimumTier, powerTier));
+  const skipped = getVoltageTierIndex(powerTier) - maxInputTierSkips(effectiveRecipe.machineType);
+  const structural = declared > getVoltageTierIndex(powerTier) ? declared : 0;
+  return GT_VOLTAGE_TIERS[Math.max(0, skipped, structural)]?.tier ?? minimumTier;
 }
 
 function getPowerState(
@@ -303,7 +319,7 @@ export function describePowerStall(report: NodePowerReport): string | undefined 
   if (report.recipeGateReason) return report.recipeGateReason;
   if (report.state === "under-powered") {
     if (report.typedBudget) {
-      return `Needs ${report.singleDrawEuT} EU/t. Supplied ${formatBudget(report.poolEuT)}.`;
+      return `Needs ${report.singleDrawEuT} EU/t. Supplied ${formatBudget(report.poolEuT)}. Add amperage or raise the tier.`;
     }
     const supply = report.hatchTypeLabel
       ? `the ${report.tier} ${report.hatchTypeLabel} supplies`
@@ -314,12 +330,18 @@ export function describePowerStall(report: NodePowerReport): string | undefined 
     );
   }
   if (report.state === "over-tier") {
+    const amps = report.lowestTier !== report.minimumTier ? ", with enough amps" : "";
     return (
       `Won't run at ${report.tier}: this recipe needs at least ` +
-      `${report.minimumTier}${report.isMultiblock ? " hatches (amps cannot skip more than one tier)" : ""}.`
+      `${report.lowestTier}${report.isMultiblock ? " hatches" : ""}${amps}.`
     );
   }
   return undefined;
+}
+
+/** A stalled card's one word: LOW! when more amps would run it, TIER! when its tier cannot. */
+export function powerStallWord(report: Pick<NodePowerReport, "state">): string {
+  return report.state === "under-powered" ? "LOW!" : "TIER!";
 }
 
 function formatBudget(euT: number): string {

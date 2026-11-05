@@ -112,7 +112,7 @@ describe("typed power budget", () => {
     });
     expect(report.state).toBe("under-powered");
     expect(describePowerStall(report)).toBe(
-      "Needs 480 EU/t. Supplied 300.",
+      "Needs 480 EU/t. Supplied 300. Add amperage or raise the tier.",
     );
   });
 
