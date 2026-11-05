@@ -3179,6 +3179,20 @@
    "iconPath": "/datasets/gtnh/local-2.9.0-beta-2/textures/rendered/nitrogen_plasma-45cc97f66844.png",
    "dominantColor": "#0093c4"
   },
+  "Oak Log": {
+   "kind": "item",
+   "id": "minecraft:log",
+   "displayName": "Oak Log",
+   "iconPath": "/datasets/gtnh/local-2.9.0-beta-2/textures/rendered/oak_log-94b92ef5e0d6.png",
+   "dominantColor": "#55442a"
+  },
+  "Oak Planks": {
+   "kind": "item",
+   "id": "minecraft:planks",
+   "displayName": "Oak Planks",
+   "iconPath": "/datasets/gtnh/local-2.9.0-beta-2/textures/rendered/oak_planks-1db6e86ee655.png",
+   "dominantColor": "#6a5635"
+  },
   "Obsidian": {
    "kind": "item",
    "id": "minecraft:obsidian",

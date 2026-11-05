@@ -108,15 +108,19 @@ const BOILER_PRESSURES = [
 
 /**
  * The solid firebox burns whatever a furnace burns, at its furnace value
- * (FuelPlugin): the workbook's furnace table, with Railcraft's own 1000 for
- * a blaze rod. Lava containers (1000 a bucket, worse than coal, leaving the
- * container) and wood are left out.
+ * (FuelPlugin): planks and logs at 300, unlike GT's boilers, then the
+ * workbook's furnace table, with Railcraft's own 1000 for a blaze rod. Lava
+ * containers (1000 a bucket, worse than coal, leaving the container) are
+ * left out.
  */
-const BOILER_SOLIDS: Array<{ name: string; burnTicks: number }> =
-  powerPlannerData.boilerFuels.bronzeSolid.map((entry: PowerFuelEntry) => ({
+const BOILER_SOLIDS: Array<{ name: string; burnTicks: number }> = [
+  { name: "Oak Planks", burnTicks: 300 },
+  { name: "Oak Log", burnTicks: 300 },
+  ...powerPlannerData.boilerFuels.bronzeSolid.map((entry: PowerFuelEntry) => ({
     name: entry.name,
     burnTicks: entry.name === "Blaze Rod" ? 1000 : (entry.euPerItem ?? 0),
-  }));
+  })),
+];
 
 /**
  * FuelManager's boiler fuels in the pack, heat per 1000 L: Railcraft's own

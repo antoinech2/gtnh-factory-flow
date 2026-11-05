@@ -89,6 +89,9 @@ const ID_OVERRIDES = {
   "Block of Cactus Coke": { kind: "item", id: "miscutils:blockcactuscoke" },
   "Block of Sugar Coke": { kind: "item", id: "miscutils:blocksugarcoke" },
   "Ench. Golden Apple": { kind: "item", id: "minecraft:golden_apple@1" },
+  // Chisel's planks share the vanilla name.
+  "Oak Planks": { kind: "item", id: "minecraft:planks" },
+  "Oak Log": { kind: "item", id: "minecraft:log" },
   // The RTG pellets' display names carry private-use glyph prefixes that
   // defeat the exact-name match; pin them by id.
   "Pu Pellet": { kind: "item", id: "miscutils:mu-metaitem.01@32041" },
@@ -253,6 +256,9 @@ const AUX_NAMES = [
   ["Fire Water", "fluid"],
   ["Biofuel", "fluid"],
   ["Blazing Pyrotheum", "fluid"],
+  // The wood its solid firebox burns, as a furnace does.
+  ["Oak Planks", "item"],
+  ["Oak Log", "item"],
 ];
 
 /**

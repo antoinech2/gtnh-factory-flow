@@ -96,6 +96,13 @@ describe("Railcraft Boiler (SteamBoiler at full heat)", () => {
     expect(flow(model, "Blaze Rod")).toBeCloseTo(0.1, 10);
   });
 
+  it("burns planks and logs at the furnace's 300", () => {
+    for (const wood of ["Oak Planks", "Oak Log"]) {
+      const model = compute("railcraft-boiler", { size: "2x2x2", fuel: wood });
+      expect(flow(model, wood), wood).toBeCloseTo(100 / 300, 10);
+    }
+  });
+
   it("states warm-up and pollution", () => {
     expect(boilerWarmUpTicks(1, 500)).toBeCloseTo(4519, 0);
     expect(boilerWarmUpTicks(1, 1000)).toBeCloseTo(9141, 0);
